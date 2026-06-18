@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# Couverture de tests
+coverage/
+
+# Env (secrets — jamais commités)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Scripts Jira locaux (jamais pousses)
+.jira/
+
+# Claude Code (config locale)
+.claude/settings.local.json
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
