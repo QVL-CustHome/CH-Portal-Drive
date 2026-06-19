@@ -19,7 +19,7 @@ interface FilesGridProps {
   onCancelDraft?: () => void;
 }
 
-const SECONDARY = "var(--ch-palette-secondary-main, #bcc2a8)";
+const SECONDARY = "var(--ch-palette-secondary-main)";
 
 export default function FilesGrid({
   items,

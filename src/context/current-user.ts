@@ -6,7 +6,7 @@ export const CurrentUserContext = createContext<Me | null>(null);
 export function useCurrentUser(): Me {
   const me = useContext(CurrentUserContext);
   if (!me) {
-    throw new Error("useCurrentUser doit etre utilise sous CurrentUserProvider");
+    throw new Error("useCurrentUser doit être utilisé sous CurrentUserProvider");
   }
   return me;
 }
