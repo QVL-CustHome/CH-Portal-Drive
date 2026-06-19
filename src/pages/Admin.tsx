@@ -86,6 +86,9 @@ export default function Admin() {
           emptyMessage={t("drive.admin.empty")}
           fixedLayout
           stickyHeader
+          maxHeight="32rem"
+          animateRows
+          enableKeyboardNav
           actionsWidth="14%"
           actions={(u) => (
             <div className="drive-row-actions">
