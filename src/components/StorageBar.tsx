@@ -1,4 +1,4 @@
-import { Feedback, Spinner, Stack, useTranslation } from "@custhome/ui";
+import { Feedback, ProgressBar, Spinner, Stack, useTranslation } from "@custhome/ui";
 import { useStorageContext } from "../context/storage";
 import { formatBytes } from "../lib/format";
 
@@ -14,9 +14,7 @@ export default function StorageBar() {
   }
 
   const ratio =
-    storage.quota_bytes > 0
-      ? Math.min(storage.used_bytes / storage.quota_bytes, 1)
-      : 0;
+    storage.quota_bytes > 0 ? Math.min(storage.used_bytes / storage.quota_bytes, 1) : 0;
   const percent = Math.round(ratio * 100);
 
   return (
@@ -27,16 +25,7 @@ export default function StorageBar() {
           quota: formatBytes(storage.quota_bytes),
         })}
       </div>
-      <div
-        className="drive-storage-track"
-        role="progressbar"
-        aria-valuenow={percent}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label={t("drive.storage.title")}
-      >
-        <div className="drive-storage-fill" style={{ width: `${percent}%` }} />
-      </div>
+      <ProgressBar value={percent} />
     </Stack>
   );
 }
