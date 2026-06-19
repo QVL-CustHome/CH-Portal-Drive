@@ -13,7 +13,7 @@ export const StorageContext = createContext<StorageContextValue | null>(null);
 export function useStorageContext(): StorageContextValue {
   const ctx = useContext(StorageContext);
   if (!ctx) {
-    throw new Error("useStorageContext doit etre utilise sous StorageProvider");
+    throw new Error("useStorageContext doit être utilisé sous StorageProvider");
   }
   return ctx;
 }
