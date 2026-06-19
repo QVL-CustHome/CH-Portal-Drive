@@ -35,10 +35,10 @@ function isFileDrag(e: DragEvent): boolean {
 
 function useIsMobile(): boolean {
   const [mobile, setMobile] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(max-width:768px)").matches
+    () => typeof window !== "undefined" && window.matchMedia("(max-width:48rem)").matches
   );
   useEffect(() => {
-    const mq = window.matchMedia("(max-width:768px)");
+    const mq = window.matchMedia("(max-width:48rem)");
     const onChange = () => setMobile(mq.matches);
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
@@ -381,7 +381,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         if (n.id === DRAFT_ID) {
           return (
             <span className="drive-name-cell">
-              <Icon name="folder" size={28} color="var(--ch-palette-secondary-main, #bcc2a8)" />
+              <Icon name="folder" size={28} color="var(--ch-palette-secondary-main)" />
               <input
                 className="drive-inline-input"
                 autoFocus
@@ -403,7 +403,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         }
         return (
           <span className="drive-name-cell">
-            <Icon name={iconFor(n)} size={28} color="var(--ch-palette-secondary-main, #bcc2a8)" />
+            <Icon name={iconFor(n)} size={28} color="var(--ch-palette-secondary-main)" />
             <span>{n.name}</span>
           </span>
         );
