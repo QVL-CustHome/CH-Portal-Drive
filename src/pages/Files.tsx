@@ -511,6 +511,9 @@ export default function Files({ trash = false }: { trash?: boolean }) {
           emptyMessage={emptyMessage}
           fixedLayout
           stickyHeader
+          maxHeight="32rem"
+          animateRows
+          enableKeyboardNav
           actionsWidth="16%"
           selectable
           selectedKeys={selected}
