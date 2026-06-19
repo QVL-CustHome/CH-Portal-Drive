@@ -73,7 +73,7 @@ export default function Gallery() {
                       />
                     ) : (
                       <span className="drive-gallery-placeholder">
-                        <Icon name={node.media_type === "video" ? "image" : "file"} size={32} />
+                        <Icon name={node.media_type === "video" ? "image" : "file"} size="lg" />
                       </span>
                     )}
                     {node.media_type === "video" && (

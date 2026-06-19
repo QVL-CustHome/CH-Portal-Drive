@@ -19,8 +19,6 @@ interface FilesGridProps {
   onCancelDraft?: () => void;
 }
 
-const SECONDARY = "var(--ch-palette-secondary-main)";
-
 export default function FilesGrid({
   items,
   selectedIds,
@@ -113,7 +111,7 @@ export default function FilesGrid({
           {adding && (
             <div className="drive-card is-draft">
               <div className="drive-card-body">
-                <Icon name="folder" size={56} color={SECONDARY} />
+                <Icon name="folder" size="xl" color="secondary" />
                 <input
                   className="drive-inline-input"
                   autoFocus
@@ -164,11 +162,11 @@ export default function FilesGrid({
                       onContextMenu(node, e);
                     }}
                   >
-                    <Icon name="more" size={18} />
+                    <Icon name="more" size="sm" />
                   </button>
                 </div>
                 <div className="drive-card-body">
-                  <Icon name={iconFor(node)} size={56} color={SECONDARY} />
+                  <Icon name={iconFor(node)} size="xl" color="secondary" />
                 </div>
               </div>
             );

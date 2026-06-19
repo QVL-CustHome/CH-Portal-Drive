@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
+import { CurrentUserProvider as CurrentUserProviderBase } from "@custhome/ui";
 import type { Me } from "../api/auth";
-import { CurrentUserContext } from "./current-user";
 
 export function CurrentUserProvider({
   value,
@@ -10,8 +10,8 @@ export function CurrentUserProvider({
   children: ReactNode;
 }) {
   return (
-    <CurrentUserContext.Provider value={value}>
+    <CurrentUserProviderBase<Me> value={value}>
       {children}
-    </CurrentUserContext.Provider>
+    </CurrentUserProviderBase>
   );
 }
