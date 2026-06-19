@@ -76,7 +76,7 @@ export default function MovePanel({ open, moving, busy, onClose, onConfirm }: Mo
             {t("drive.files.root")}
           </button>
           {ancestors.map((crumb) => (
-            <span key={crumb.id} style={{ display: "inline-flex", gap: "0.35rem" }}>
+            <Stack key={crumb.id} direction="row" gap="xs" alignItems="center">
               <span className="drive-breadcrumb-sep">/</span>
               <button
                 type="button"
@@ -85,7 +85,7 @@ export default function MovePanel({ open, moving, busy, onClose, onConfirm }: Mo
               >
                 {crumb.name}
               </button>
-            </span>
+            </Stack>
           ))}
         </div>
 
@@ -103,7 +103,7 @@ export default function MovePanel({ open, moving, busy, onClose, onConfirm }: Mo
                 disabled={excluded.has(folder.id)}
                 onClick={() => setCurrentId(folder.id)}
               >
-                <Icon name="folder" size={20} />
+                <Icon name="folder" size="sm" />
                 <span>{folder.name}</span>
               </button>
             ))}

@@ -1,3 +1,1 @@
-export function navigateTo(url: string): void {
-  window.location.assign(url);
-}
+export { navigateTo } from "@custhome/ui";
