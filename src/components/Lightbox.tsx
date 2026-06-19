@@ -34,7 +34,7 @@ export default function Lightbox({ node, onClose }: LightboxProps) {
         aria-label={t("drive.gallery.close")}
         onClick={onClose}
       >
-        <Icon name="close" size={28} />
+        <Icon name="close" size="md" />
       </button>
       <div className="drive-lightbox-stage" onClick={(e) => e.stopPropagation()}>
         {isVideo ? (

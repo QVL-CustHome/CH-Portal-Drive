@@ -6,6 +6,7 @@ import {
   IconActionButton,
   Input,
   PageContent,
+  ProgressBar,
   SidePanel,
   Stack,
   Toast,
@@ -59,20 +60,7 @@ export default function Admin() {
       render: (u) => {
         const percent =
           u.quota_bytes > 0 ? Math.round(Math.min(u.used_bytes / u.quota_bytes, 1) * 100) : 0;
-        return (
-          <Stack gap="xs">
-            <span className="drive-storage-label">{percent} %</span>
-            <div
-              className="drive-storage-track drive-admin-bar"
-              role="progressbar"
-              aria-valuenow={percent}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            >
-              <div className="drive-storage-fill" style={{ width: `${percent}%` }} />
-            </div>
-          </Stack>
-        );
+        return <ProgressBar value={percent} showValue />;
       },
     },
     {

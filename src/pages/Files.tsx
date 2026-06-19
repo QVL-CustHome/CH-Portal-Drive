@@ -25,88 +25,53 @@ import MovePanel from "../components/MovePanel";
 import FilesGrid from "../components/FilesGrid";
 import { downloadUrl, type Node } from "../api/drive";
 import { useFiles } from "../hooks/useFiles";
+import { useIsMobile } from "../hooks/useIsMobile";
+import { usePersistentViewMode } from "../hooks/usePersistentViewMode";
+import { useWindowFileDrop } from "../hooks/useWindowFileDrop";
+import { useTableSelection } from "../hooks/useTableSelection";
+import { useFolderDraft } from "../hooks/useFolderDraft";
+import { useDebouncedSearch } from "../hooks/useDebouncedSearch";
 import { formatBytes, formatDate } from "../lib/format";
 
 const DRAFT_ID = "__draft__";
-
-function isFileDrag(e: DragEvent): boolean {
-  return Array.from(e.dataTransfer?.types ?? []).includes("Files");
-}
-
-function useIsMobile(): boolean {
-  const [mobile, setMobile] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(max-width:48rem)").matches
-  );
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width:48rem)");
-    const onChange = () => setMobile(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return mobile;
-}
 
 export default function Files({ trash = false }: { trash?: boolean }) {
   const { t, locale } = useTranslation();
   const files = useFiles(trash ? "trash" : "files");
   const fileInput = useRef<HTMLInputElement>(null);
   const dirInput = useRef<HTMLInputElement>(null);
-  const committingRef = useRef(false);
+  const importButton = useRef<HTMLDivElement>(null);
   const [renaming, setRenaming] = useState<Node | null>(null);
   const [renameName, setRenameName] = useState("");
-  const [searchInput, setSearchInput] = useState("");
   const [confirmEmpty, setConfirmEmpty] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [extDrag, setExtDrag] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [draftName, setDraftName] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
   const [menu, setMenu] = useState<{ node: Node; x: number; y: number } | null>(null);
   const [propsNode, setPropsNode] = useState<Node | null>(null);
   const [movingNodes, setMovingNodes] = useState<Node[] | null>(null);
   const [confirmPurgeMany, setConfirmPurgeMany] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "grid">(() =>
-    typeof window !== "undefined" && window.localStorage.getItem("drive.viewMode") === "grid"
-      ? "grid"
-      : "list"
-  );
-
-  useEffect(() => {
-    window.localStorage.setItem("drive.viewMode", viewMode);
-  }, [viewMode]);
+  const [viewMode, setViewMode] = usePersistentViewMode();
 
   const isTrash = trash;
   const isSearch = files.view === "search";
   const isBrowse = !isTrash && files.view === "files";
   const isMobile = useIsMobile();
 
-  const runSearch = files.runSearch;
-  const uploadRef = useRef(files.upload);
-  uploadRef.current = files.upload;
-
-  const selectedIds = selected.filter((id) => id !== DRAFT_ID);
+  const { selected, setSelected, selectedIds, clearSelection } = useTableSelection({
+    resetKey: `${files.parentId}|${files.view}|${isTrash}`,
+    excludeId: DRAFT_ID,
+  });
   const selectedNodes = files.items.filter((n) => selectedIds.includes(n.id));
 
-  useEffect(() => {
-    setSelected([]);
-  }, [files.parentId, files.view, isTrash]);
+  const { adding, draftName, setDraftName, startAdd, commitDraft, cancelDraft } = useFolderDraft({
+    onCreate: files.newFolder,
+  });
 
-  useEffect(() => {
-    if (selectedIds.length === 0) return;
-    const onDown = (e: MouseEvent) => {
-      if (e.button !== 0) return;
-      const target = e.target as HTMLElement;
-      if (
-        target.closest(
-          "[data-rowkey], thead, .drive-selbar, .drive-context-menu, .MuiModal-root, .MuiPopover-root"
-        )
-      )
-        return;
-      setSelected([]);
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [selectedIds.length]);
+  const { searchInput, setSearchInput } = useDebouncedSearch({
+    enabled: !isTrash,
+    onSearch: files.runSearch,
+  });
+
+  const extDrag = useWindowFileDrop(isBrowse, (list) => void files.upload(list));
 
   useEffect(() => {
     if (dirInput.current) {
@@ -114,66 +79,6 @@ export default function Files({ trash = false }: { trash?: boolean }) {
       dirInput.current.setAttribute("directory", "");
     }
   }, []);
-
-  useEffect(() => {
-    if (isTrash) return;
-    const handle = window.setTimeout(() => runSearch(searchInput), 300);
-    return () => window.clearTimeout(handle);
-  }, [searchInput, isTrash, runSearch]);
-
-  useEffect(() => {
-    if (!isBrowse) return;
-    const onOver = (e: DragEvent) => {
-      if (!isFileDrag(e)) return;
-      e.preventDefault();
-      setExtDrag(true);
-    };
-    const onDrop = (e: DragEvent) => {
-      if (!isFileDrag(e)) return;
-      e.preventDefault();
-      setExtDrag(false);
-      const dropped = e.dataTransfer?.files;
-      if (dropped && dropped.length > 0) void uploadRef.current(dropped);
-    };
-    const onLeave = (e: DragEvent) => {
-      if (e.relatedTarget === null) setExtDrag(false);
-    };
-    const onEnd = () => setExtDrag(false);
-    window.addEventListener("dragover", onOver);
-    window.addEventListener("drop", onDrop);
-    window.addEventListener("dragleave", onLeave);
-    window.addEventListener("dragend", onEnd);
-    return () => {
-      window.removeEventListener("dragover", onOver);
-      window.removeEventListener("drop", onDrop);
-      window.removeEventListener("dragleave", onLeave);
-      window.removeEventListener("dragend", onEnd);
-    };
-  }, [isBrowse]);
-
-  const startAdd = () => {
-    setDraftName("");
-    setAdding(true);
-  };
-
-  const commitDraft = async () => {
-    if (committingRef.current) return;
-    committingRef.current = true;
-    const name = draftName.trim();
-    setAdding(false);
-    setDraftName("");
-    if (name) await files.newFolder(name);
-    committingRef.current = false;
-  };
-
-  const cancelDraft = () => {
-    committingRef.current = true;
-    setAdding(false);
-    setDraftName("");
-    window.setTimeout(() => {
-      committingRef.current = false;
-    }, 0);
-  };
 
   const openRename = (node: Node) => {
     setRenameName(node.name);
@@ -212,8 +117,6 @@ export default function Files({ trash = false }: { trash?: boolean }) {
       void files.move(draggedKey, targetParentId);
     }
   };
-
-  const clearSelection = () => setSelected([]);
 
   const bulkTrash = async () => {
     const ok = await files.trashMany(selectedIds);
@@ -362,7 +265,10 @@ export default function Files({ trash = false }: { trash?: boolean }) {
           ? [
               {
                 label: t("drive.props.dimensions"),
-                value: `${propsNode.width} × ${propsNode.height} px`,
+                value: t("drive.props.dimensions.value", {
+                  width: String(propsNode.width),
+                  height: String(propsNode.height),
+                }),
               },
             ]
           : []),
@@ -381,7 +287,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         if (n.id === DRAFT_ID) {
           return (
             <span className="drive-name-cell">
-              <Icon name="folder" size={28} color="var(--ch-palette-secondary-main)" />
+              <Icon name="folder" size="md" color="secondary" />
               <input
                 className="drive-inline-input"
                 autoFocus
@@ -403,7 +309,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         }
         return (
           <span className="drive-name-cell">
-            <Icon name={iconFor(n)} size={28} color="var(--ch-palette-secondary-main)" />
+            <Icon name={iconFor(n)} size="md" color="secondary" />
             <span>{n.name}</span>
           </span>
         );
@@ -473,17 +379,18 @@ export default function Files({ trash = false }: { trash?: boolean }) {
                     disabled={files.busy || adding}
                   />
                 </span>
-                <div className="drive-import-wrap">
+                <div className="drive-import-wrap" ref={importButton}>
                   <Button
                     variant="primary"
                     onClick={() => setImportOpen((o) => !o)}
                     loading={files.busy}
-                    startIcon={<Icon name="upload" size={18} />}
+                    startIcon={<Icon name="upload" size="sm" />}
                   >
                     {t("drive.files.action.upload")}
                   </Button>
                   <ImportMenu
                     open={importOpen}
+                    anchorEl={importButton.current}
                     onClose={() => setImportOpen(false)}
                     onPickFiles={() => {
                       setImportOpen(false);
@@ -502,7 +409,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
                 variant="danger"
                 onClick={() => setConfirmEmpty(true)}
                 disabled={files.busy || files.items.length === 0}
-                startIcon={<Icon name="trash" size={18} />}
+                startIcon={<Icon name="trash" size="sm" />}
               >
                 {t("drive.files.action.emptyTrash")}
               </Button>
@@ -536,7 +443,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
               aria-label={t("drive.files.selection.clear")}
               onClick={clearSelection}
             >
-              <Icon name="close" size={18} />
+              <Icon name="close" size="sm" />
             </button>
             <span className="drive-selbar-count">
               {t("drive.files.selection.count", { count: String(selectedIds.length) })}
@@ -801,7 +708,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
       {extDrag && isBrowse && (
         <div className="drive-dropzone-overlay">
           <div className="drive-dropzone-card">
-            <Icon name="upload" size={40} />
+            <Icon name="upload" size="xl" />
             <span>{t("drive.files.import.dropHere")}</span>
           </div>
         </div>
