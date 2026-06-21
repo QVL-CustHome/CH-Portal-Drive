@@ -34,6 +34,7 @@ export default function DriveLayout() {
   return (
     <StorageProvider>
       <PageScaffold
+        navbarTitle="CustHome"
         title={t("drive.brand")}
         items={items}
         activeHref={location.pathname}
