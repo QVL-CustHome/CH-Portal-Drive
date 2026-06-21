@@ -4,7 +4,7 @@ export const defaultLocale: ChLocale = "fr";
 
 export const messages: ChLocaleMessages = {
   fr: {
-    "drive.brand": "CustHome - Drive",
+    "drive.brand": "Drive",
     "drive.loading": "Chargement",
     "drive.logout": "Se déconnecter",
     "drive.nav.label": "Navigation principale",
@@ -111,7 +111,7 @@ export const messages: ChLocaleMessages = {
     "drive.storage.usage": "{used} utilisés sur {quota}",
   },
   en: {
-    "drive.brand": "CustHome - Drive",
+    "drive.brand": "Drive",
     "drive.loading": "Loading",
     "drive.logout": "Log out",
     "drive.nav.label": "Main navigation",
