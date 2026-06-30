@@ -8,7 +8,7 @@
   },
   "scripts": {
     "predev": "node scripts/sync-ui-lib.mjs",
-    "dev": "vite",
+    "dev": "vite --force",
     "prebuild": "node scripts/sync-ui-lib.mjs",
     "build": "tsc -b && vite build",
     "sync:ui": "node scripts/sync-ui-lib.mjs",
