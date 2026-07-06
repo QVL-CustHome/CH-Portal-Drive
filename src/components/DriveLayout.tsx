@@ -41,7 +41,7 @@ export default function DriveLayout() {
         onNavigate={(href) => navigate(href)}
         userName={me.name}
         onLogout={handleLogout}
-        footer={
+        sidebarWidget={
           <div className="drive-nav-storage">
             <StorageBar />
           </div>

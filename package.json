@@ -20,7 +20,7 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "@custhome/ui": "git+https://gitlab.com/qvl-custhome/CH-UI-Library.git#v0.6.0",
+    "@custhome/ui": "git+https://gitlab.com/qvl-custhome/CH-UI-Library.git#v0.7.0",
     "express": "^5.1.0",
     "http-proxy-middleware": "^3.0.5",
     "react": "^19.1.0",
