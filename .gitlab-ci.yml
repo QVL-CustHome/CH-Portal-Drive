@@ -1,5 +1,4 @@
 # CI/CD CH-Portal-Drive — base commune : template node QVL-ToolBox/PipeLine
-# (lint surcharge : pas encore de prettier dans ce repo)
 include:
   - remote: "https://raw.githubusercontent.com/QVL-ToolBox/PipeLine/main/node.gitlab-ci.yml"
 
@@ -8,17 +7,27 @@ stages:
   - build
   - deploy
 
+# ce repo n'a pas (encore) prettier -> lint = eslint seul
 lint:
   script:
     - npm ci
     - npm run lint
 
-# le build lit VITE_AUTH_PORTAL_URL depuis les variables CI du groupe
+# la config de prod est injectee UNIQUEMENT au build (les tests gardent les valeurs par defaut)
+build:
+  variables:
+    VITE_AUTH_PORTAL_URL: "https://ch-auth.qvl-project.com"
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths: [dist/]
+    expire_in: 1 week
+
 deploy:
   stage: deploy
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-  dependencies:
-    - build
+  dependencies: [build]
   script:
     - sudo /usr/local/bin/ch-deploy-portal ch-portal-drive "$CI_PROJECT_DIR"
