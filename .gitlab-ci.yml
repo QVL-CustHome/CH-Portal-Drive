@@ -1,0 +1,24 @@
+# CI/CD CH-Portal-Drive — base commune : template node QVL-ToolBox/PipeLine
+# (lint surcharge : pas encore de prettier dans ce repo)
+include:
+  - remote: "https://raw.githubusercontent.com/QVL-ToolBox/PipeLine/main/node.gitlab-ci.yml"
+
+stages:
+  - test
+  - build
+  - deploy
+
+lint:
+  script:
+    - npm ci
+    - npm run lint
+
+# le build lit VITE_AUTH_PORTAL_URL depuis les variables CI du groupe
+deploy:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  dependencies:
+    - build
+  script:
+    - sudo /usr/local/bin/ch-deploy-portal ch-portal-drive "$CI_PROJECT_DIR"
