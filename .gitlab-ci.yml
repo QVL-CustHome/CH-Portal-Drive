@@ -31,3 +31,9 @@ deploy:
   dependencies: [build]
   script:
     - sudo /usr/local/bin/ch-deploy-portal ch-portal-drive "$CI_PROJECT_DIR"
+
+# ce portail n'a pas encore de tests unitaires -> vitest ne doit pas echouer sur suite vide
+test:
+  script:
+    - npm ci
+    - npm test -- --passWithNoTests
