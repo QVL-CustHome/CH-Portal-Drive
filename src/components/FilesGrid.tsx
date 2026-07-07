@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Checkbox, Icon, useTranslation, type ChIconName } from "@custhome/ui";
+import { Checkbox, Icon, useTranslation, type ChIconName } from "canopui";
 import type { Node } from "../api/drive";
 
 interface FilesGridProps {

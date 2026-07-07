@@ -17,7 +17,7 @@ import {
   Toast,
   useTranslation,
   type ChColumn,
-} from "@custhome/ui";
+} from "canopui";
 import Breadcrumb from "../components/Breadcrumb";
 import ImportMenu from "../components/ImportMenu";
 import ContextMenu, { type ContextMenuItem } from "../components/ContextMenu";

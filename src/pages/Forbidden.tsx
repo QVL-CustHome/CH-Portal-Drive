@@ -1,4 +1,4 @@
-import { Button, Feedback, Heading, Stack, useTranslation } from "@custhome/ui";
+import { Button, Feedback, Heading, Stack, useTranslation } from "canopui";
 import { navigateTo } from "../lib/navigation";
 import { loginUrl } from "../lib/auth-redirect";
 

@@ -12,7 +12,7 @@ import {
   Toast,
   useTranslation,
   type ChColumn,
-} from "@custhome/ui";
+} from "canopui";
 import { type DriveAdminUser } from "../api/drive";
 import { useDriveAdmin } from "../hooks/useDriveAdmin";
 import { formatBytes, formatDate } from "../lib/format";

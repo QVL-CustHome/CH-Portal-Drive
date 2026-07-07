@@ -1,4 +1,4 @@
-import { Icon, Menu, MenuItem, type ChIconName } from "@custhome/ui";
+import { Icon, Menu, MenuItem, type ChIconName } from "canopui";
 
 export interface ContextMenuItem {
   icon: ChIconName;

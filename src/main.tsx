@@ -1,5 +1,5 @@
-import { ChI18nProvider, ChThemeProvider } from "@custhome/ui";
-import "@custhome/ui/styles.css";
+import { ChI18nProvider, ChThemeProvider } from "canopui";
+import "canopui/styles.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

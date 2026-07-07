@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, Outlet } from "react-router-dom";
-import { PageScaffold, useTranslation, type ChNavbarItem } from "@custhome/ui";
+import { PageScaffold, useTranslation, type ChNavbarItem } from "canopui";
 import { useCurrentUser } from "../context/current-user";
 import { StorageProvider } from "../context/StorageProvider";
 import StorageBar from "./StorageBar";

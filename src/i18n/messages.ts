@@ -1,4 +1,4 @@
-import type { ChLocale, ChLocaleMessages } from "@custhome/ui";
+import type { ChLocale, ChLocaleMessages } from "canopui";
 
 export const defaultLocale: ChLocale = "fr";
 

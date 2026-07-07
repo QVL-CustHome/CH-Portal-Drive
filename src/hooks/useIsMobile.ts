@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createChTheme } from "@custhome/ui";
+import { createChTheme } from "canopui";
 
 export const MOBILE_BREAKPOINT = 768;
 

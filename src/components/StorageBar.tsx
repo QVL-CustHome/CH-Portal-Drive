@@ -1,4 +1,4 @@
-import { Feedback, ProgressBar, Spinner, Stack, useTranslation } from "@custhome/ui";
+import { Feedback, ProgressBar, Spinner, Stack, useTranslation } from "canopui";
 import { useStorageContext } from "../context/storage";
 import { formatBytes } from "../lib/format";
 

@@ -1,1 +1,1 @@
-export { navigateTo } from "@custhome/ui";
+export { navigateTo } from "canopui";
