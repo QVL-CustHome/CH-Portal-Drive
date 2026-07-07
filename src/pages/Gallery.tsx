@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Feedback, Heading, Icon, PageContent, Spinner, Stack, useTranslation } from "@custhome/ui";
+import { Feedback, Heading, Icon, PageContent, Spinner, Stack, useTranslation } from "canopui";
 import Lightbox from "../components/Lightbox";
 import { thumbnailUrl, type Node } from "../api/drive";
 import { useGallery } from "../hooks/useGallery";

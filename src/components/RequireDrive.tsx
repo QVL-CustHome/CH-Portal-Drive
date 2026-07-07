@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { RouteGuard, useTranslation } from "@custhome/ui";
+import { RouteGuard, useTranslation } from "canopui";
 import { getMe, type Me } from "../api/auth";
 import { ApiError } from "../api/client";
 import { isPortalDrive } from "../lib/roles";

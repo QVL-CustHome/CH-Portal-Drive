@@ -1,4 +1,4 @@
-import { ApiError, createApiClient } from "@custhome/ui";
+import { ApiError, createApiClient } from "canopui";
 
 const client = createApiClient({ basePath: "/api", withRefresh: true });
 

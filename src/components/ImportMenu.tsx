@@ -1,4 +1,4 @@
-import { Icon, Menu, MenuItem, useTranslation } from "@custhome/ui";
+import { Icon, Menu, MenuItem, useTranslation } from "canopui";
 
 interface ImportMenuProps {
   open: boolean;

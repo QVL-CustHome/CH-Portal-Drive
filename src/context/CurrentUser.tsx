@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { CurrentUserProvider as CurrentUserProviderBase } from "@custhome/ui";
+import { CurrentUserProvider as CurrentUserProviderBase } from "canopui";
 import type { Me } from "../api/auth";
 
 export function CurrentUserProvider({

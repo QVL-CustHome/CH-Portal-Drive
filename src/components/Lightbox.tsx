@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Icon, useTranslation } from "@custhome/ui";
+import { Icon, useTranslation } from "canopui";
 import { contentUrlFor, type Node } from "../api/drive";
 
 interface LightboxProps {

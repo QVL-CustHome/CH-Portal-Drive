@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Icon, SidePanel, Spinner, Stack, useTranslation } from "@custhome/ui";
+import { Button, Icon, SidePanel, Spinner, Stack, useTranslation } from "canopui";
 import { listNodes, type Crumb, type Node } from "../api/drive";
 
 interface MovePanelProps {
