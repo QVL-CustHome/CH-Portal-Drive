@@ -17,6 +17,7 @@ lint:
 build:
   variables:
     VITE_AUTH_PORTAL_URL: "https://ch-auth.qvl-project.com"
+    VITE_REDIRECT_COOKIE_DOMAIN: ".qvl-project.com"
   script:
     - npm ci
     - npm run build
