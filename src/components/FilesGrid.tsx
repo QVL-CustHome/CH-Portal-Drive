@@ -1,16 +1,20 @@
-import { useRef } from "react";
-import { Checkbox, Icon, useTranslation, type ChIconName } from "canopui";
+import Box from "@mui/material/Box";
+import { Card, CardGrid, EmptyState, Icon, Stack } from "canopui";
 import type { Node } from "../api/drive";
+import DriveFileCard from "./DriveFileCard";
+import InlineNameInput from "./InlineNameInput";
+import type { ContextMenuItem } from "./ContextMenu";
 
 interface FilesGridProps {
   items: Node[];
   selectedIds: string[];
   onSelectionChange: (ids: string[]) => void;
   onOpenFolder: (id: string) => void;
-  onContextMenu: (node: Node, e: React.MouseEvent) => void;
-  iconFor: (node: Node) => ChIconName;
+  buildMenu: (node: Node) => ContextMenuItem[];
+  metadataFor: (node: Node) => string | undefined;
   enableOpen: boolean;
   emptyMessage: string;
+  menuLabel: string;
   adding?: boolean;
   draftName?: string;
   draftPlaceholder?: string;
@@ -24,10 +28,11 @@ export default function FilesGrid({
   selectedIds,
   onSelectionChange,
   onOpenFolder,
-  onContextMenu,
-  iconFor,
+  buildMenu,
+  metadataFor,
   enableOpen,
   emptyMessage,
+  menuLabel,
   adding = false,
   draftName = "",
   draftPlaceholder,
@@ -35,144 +40,48 @@ export default function FilesGrid({
   onCommitDraft,
   onCancelDraft,
 }: FilesGridProps) {
-  const { t } = useTranslation();
-  const anchor = useRef<string | null>(null);
-  const clickTimer = useRef<number | null>(null);
   const selectedSet = new Set(selectedIds);
-  const order = items.map((n) => n.id);
-  const showCheck = selectedIds.length > 0;
-
-  const applySelection = (e: React.MouseEvent, id: string) => {
-    if (e.shiftKey && anchor.current) {
-      const a = order.indexOf(anchor.current);
-      const b = order.indexOf(id);
-      if (a >= 0 && b >= 0) {
-        const [lo, hi] = a < b ? [a, b] : [b, a];
-        const base = e.ctrlKey || e.metaKey ? new Set(selectedIds) : new Set<string>();
-        order.slice(lo, hi + 1).forEach((k) => base.add(k));
-        onSelectionChange([...base]);
-      }
-    } else if (e.ctrlKey || e.metaKey) {
-      const next = new Set(selectedIds);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      onSelectionChange([...next]);
-      anchor.current = id;
-    } else {
-      onSelectionChange([id]);
-      anchor.current = id;
-    }
-  };
-
-  const handleClick = (e: React.MouseEvent, node: Node) => {
-    const target = e.target as HTMLElement;
-    if (target.closest('input, button, [data-no-select="true"]')) return;
-    if (e.ctrlKey || e.metaKey || e.shiftKey) {
-      applySelection(e, node.id);
-      return;
-    }
-    if (enableOpen && node.kind === "folder") {
-      if (clickTimer.current) window.clearTimeout(clickTimer.current);
-      clickTimer.current = window.setTimeout(() => {
-        onSelectionChange([node.id]);
-        anchor.current = node.id;
-        clickTimer.current = null;
-      }, 220);
-    } else {
-      onSelectionChange([node.id]);
-      anchor.current = node.id;
-    }
-  };
-
-  const handleDouble = (node: Node) => {
-    if (enableOpen && node.kind === "folder") {
-      if (clickTimer.current) {
-        window.clearTimeout(clickTimer.current);
-        clickTimer.current = null;
-      }
-      onOpenFolder(node.id);
-    }
-  };
 
   const toggle = (id: string) => {
     const next = new Set(selectedIds);
     if (next.has(id)) next.delete(id);
     else next.add(id);
     onSelectionChange([...next]);
-    anchor.current = id;
   };
 
+  if (items.length === 0 && !adding) {
+    return <EmptyState title={emptyMessage} icon={<Icon name="folder" size="xl" color="secondary" />} />;
+  }
+
   return (
-    <div className="drive-grid-scroll">
-      {items.length === 0 && !adding ? (
-        <div className="drive-grid-empty">{emptyMessage}</div>
-      ) : (
-        <div className="drive-grid">
-          {adding && (
-            <div className="drive-card is-draft">
-              <div className="drive-card-body">
-                <Icon name="folder" size="xl" color="secondary" />
-                <input
-                  className="drive-inline-input"
-                  autoFocus
-                  value={draftName}
-                  placeholder={draftPlaceholder}
-                  onChange={(e) => onDraftChange?.(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      onCommitDraft?.();
-                    } else if (e.key === "Escape") {
-                      onCancelDraft?.();
-                    }
-                  }}
-                  onBlur={() => onCommitDraft?.()}
-                />
-              </div>
-            </div>
-          )}
-          {items.map((node) => {
-            const selected = selectedSet.has(node.id);
-            return (
-              <div
-                key={node.id}
-                className={`drive-card${selected ? " is-selected" : ""}`}
-                role="button"
-                tabIndex={0}
-                onClick={(e) => handleClick(e, node)}
-                onDoubleClick={() => handleDouble(node)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  onContextMenu(node, e);
-                }}
-              >
-                <div className="drive-card-head">
-                  {showCheck && (
-                    <span className="drive-card-check" onClick={(e) => e.stopPropagation()}>
-                      <Checkbox checked={selected} onChange={() => toggle(node.id)} size="small" />
-                    </span>
-                  )}
-                  <span className="drive-card-name">{node.name}</span>
-                  <button
-                    type="button"
-                    className="drive-card-menu"
-                    aria-label={t("drive.files.action.more")}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onContextMenu(node, e);
-                    }}
-                  >
-                    <Icon name="more" size="sm" />
-                  </button>
-                </div>
-                <div className="drive-card-body">
-                  <Icon name={iconFor(node)} size="xl" color="secondary" />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+    <CardGrid minItemWidth="12rem" gap="md">
+      {adding && (
+        <Card variant="surface" density="comfortable">
+          <Stack gap="sm" alignItems="center">
+            <Icon name="folder" size="xl" color="secondary" />
+            <InlineNameInput
+              value={draftName}
+              placeholder={draftPlaceholder}
+              onChange={(value) => onDraftChange?.(value)}
+              onCommit={() => onCommitDraft?.()}
+              onCancel={() => onCancelDraft?.()}
+            />
+          </Stack>
+        </Card>
       )}
-    </div>
+      {items.map((node) => (
+        <Box key={node.id} data-rowkey={node.id} minWidth={0}>
+          <DriveFileCard
+            node={node}
+            selected={selectedSet.has(node.id)}
+            onToggleSelect={() => toggle(node.id)}
+            onOpen={enableOpen && node.kind === "folder" ? () => onOpenFolder(node.id) : undefined}
+            metadata={metadataFor(node)}
+            menuItems={buildMenu(node)}
+            menuLabel={menuLabel}
+          />
+        </Box>
+      ))}
+    </CardGrid>
   );
 }
