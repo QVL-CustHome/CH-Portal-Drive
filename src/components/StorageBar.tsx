@@ -1,3 +1,4 @@
+import Typography from "@mui/material/Typography";
 import { Feedback, ProgressBar, Spinner, Stack, useTranslation } from "canopui";
 import { useStorageContext } from "../context/storage";
 import { formatBytes } from "../lib/format";
@@ -19,12 +20,12 @@ export default function StorageBar() {
 
   return (
     <Stack gap="xs">
-      <div className="drive-storage-label">
+      <Typography variant="caption" color="text.secondary">
         {t("drive.storage.usage", {
           used: formatBytes(storage.used_bytes),
           quota: formatBytes(storage.quota_bytes),
         })}
-      </div>
+      </Typography>
       <ProgressBar value={percent} />
     </Stack>
   );

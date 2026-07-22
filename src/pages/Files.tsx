@@ -1,33 +1,44 @@
 import { useEffect, useRef, useState } from "react";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import {
-  AddButton,
+  Breadcrumb,
   Button,
   ConfirmDialog,
   DataTable,
   DeleteButton,
   DescriptionList,
+  Dropzone,
   EditButton,
   Feedback,
   Icon,
   IconActionButton,
   Input,
   PageContent,
+  SelectionBar,
   SidePanel,
   Stack,
   Toast,
+  Toolbar,
   useTranslation,
+  type ChBreadcrumbItem,
   type ChColumn,
+  type ChSelectionAction,
+  type ChToolbarAction,
+  type ChToolbarSearchConfig,
+  type ChToolbarViewConfig,
 } from "canopui";
-import Breadcrumb from "../components/Breadcrumb";
-import ImportMenu from "../components/ImportMenu";
 import ContextMenu, { type ContextMenuItem } from "../components/ContextMenu";
-import MovePanel from "../components/MovePanel";
 import FilesGrid from "../components/FilesGrid";
+import InlineNameInput from "../components/InlineNameInput";
+import MovePanel from "../components/MovePanel";
+import NameCell from "../components/NameCell";
+import PanelFooter from "../components/PanelFooter";
+import RowActions from "../components/RowActions";
 import { downloadUrl, type Node } from "../api/drive";
 import { useFiles } from "../hooks/useFiles";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { usePersistentViewMode } from "../hooks/usePersistentViewMode";
-import { useWindowFileDrop } from "../hooks/useWindowFileDrop";
 import { useTableSelection } from "../hooks/useTableSelection";
 import { useFolderDraft } from "../hooks/useFolderDraft";
 import { useDebouncedSearch } from "../hooks/useDebouncedSearch";
@@ -40,11 +51,9 @@ export default function Files({ trash = false }: { trash?: boolean }) {
   const files = useFiles(trash ? "trash" : "files");
   const fileInput = useRef<HTMLInputElement>(null);
   const dirInput = useRef<HTMLInputElement>(null);
-  const importButton = useRef<HTMLDivElement>(null);
   const [renaming, setRenaming] = useState<Node | null>(null);
   const [renameName, setRenameName] = useState("");
   const [confirmEmpty, setConfirmEmpty] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
   const [menu, setMenu] = useState<{ node: Node; x: number; y: number } | null>(null);
   const [propsNode, setPropsNode] = useState<Node | null>(null);
   const [movingNodes, setMovingNodes] = useState<Node[] | null>(null);
@@ -70,8 +79,6 @@ export default function Files({ trash = false }: { trash?: boolean }) {
     enabled: !isTrash,
     onSearch: files.runSearch,
   });
-
-  const extDrag = useWindowFileDrop(isBrowse, (list) => void files.upload(list));
 
   useEffect(() => {
     if (dirInput.current) {
@@ -216,6 +223,9 @@ export default function Files({ trash = false }: { trash?: boolean }) {
     return node.is_media && node.media_type === "image" ? "image" : "file";
   };
 
+  const metadataFor = (node: Node) =>
+    node.kind === "file" ? formatBytes(node.size_bytes) : undefined;
+
   const viewTitle = isTrash
     ? t("drive.files.trash.title")
     : isSearch
@@ -286,33 +296,19 @@ export default function Files({ trash = false }: { trash?: boolean }) {
       render: (n) => {
         if (n.id === DRAFT_ID) {
           return (
-            <span className="drive-name-cell">
+            <Stack direction="row" alignItems="center" gap="xs">
               <Icon name="folder" size="md" color="secondary" />
-              <input
-                className="drive-inline-input"
-                autoFocus
+              <InlineNameInput
                 value={draftName}
                 placeholder={t("drive.files.newFolder.placeholder")}
-                onChange={(e) => setDraftName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void commitDraft();
-                  } else if (e.key === "Escape") {
-                    cancelDraft();
-                  }
-                }}
-                onBlur={() => void commitDraft()}
+                onChange={setDraftName}
+                onCommit={() => void commitDraft()}
+                onCancel={cancelDraft}
               />
-            </span>
+            </Stack>
           );
         }
-        return (
-          <span className="drive-name-cell">
-            <Icon name={iconFor(n)} size="md" color="secondary" />
-            <span>{n.name}</span>
-          </span>
-        );
+        return <NameCell icon={iconFor(n)} name={n.name} />;
       },
     },
     {
@@ -337,154 +333,250 @@ export default function Files({ trash = false }: { trash?: boolean }) {
     },
   ];
 
-  return (
-    <PageContent hideUtilitiesOnMobile fillHeight>
-      <Stack gap="lg" fill>
-        {!isTrash && (
-          <div className="drive-search">
-            <Input
-              label={t("drive.files.search.label")}
-              value={searchInput}
-              onChange={setSearchInput}
-              icon="search"
-              placeholder={t("drive.files.search.placeholder")}
-            />
-          </div>
-        )}
+  const search: ChToolbarSearchConfig | undefined = !isTrash
+    ? {
+        value: searchInput,
+        onChange: setSearchInput,
+        placeholder: t("drive.files.search.placeholder"),
+      }
+    : undefined;
 
-        {files.loadError && <Feedback severity="error">{files.loadError}</Feedback>}
+  const view: ChToolbarViewConfig = { value: viewMode, onChange: setViewMode };
 
-        <div className="drive-toolbar">
-          <span className="drive-view-toggle">
-            <IconActionButton
-              icon="menu"
-              variant={viewMode === "list" ? "default" : "secondary"}
-              aria-label={t("drive.files.view.list")}
-              onClick={() => setViewMode("list")}
-            />
-            <IconActionButton
-              icon="apps"
-              variant={viewMode === "grid" ? "default" : "secondary"}
-              aria-label={t("drive.files.view.grid")}
-              onClick={() => setViewMode("grid")}
-            />
-          </span>
-          <div className="drive-toolbar-actions">
-            {isBrowse && (
-              <>
-                <span className="drive-add-slot">
-                  <AddButton
-                    aria-label={t("drive.files.action.add")}
-                    onClick={startAdd}
-                    disabled={files.busy || adding}
-                  />
-                </span>
-                <div className="drive-import-wrap" ref={importButton}>
-                  <Button
-                    variant="primary"
-                    onClick={() => setImportOpen((o) => !o)}
-                    loading={files.busy}
-                    startIcon={<Icon name="upload" size="sm" />}
-                  >
-                    {t("drive.files.action.upload")}
-                  </Button>
-                  <ImportMenu
-                    open={importOpen}
-                    anchorEl={importButton.current}
-                    onClose={() => setImportOpen(false)}
-                    onPickFiles={() => {
-                      setImportOpen(false);
-                      fileInput.current?.click();
-                    }}
-                    onPickFolder={() => {
-                      setImportOpen(false);
-                      dirInput.current?.click();
-                    }}
-                  />
-                </div>
-              </>
-            )}
-            {isTrash && (
-              <Button
-                variant="danger"
-                onClick={() => setConfirmEmpty(true)}
-                disabled={files.busy || files.items.length === 0}
-                startIcon={<Icon name="trash" size="sm" />}
-              >
-                {t("drive.files.action.emptyTrash")}
-              </Button>
-            )}
-            {isSearch && (
-              <Button variant="secondary" onClick={() => setSearchInput("")}>
-                {t("drive.files.action.backToFiles")}
-              </Button>
-            )}
-          </div>
-        </div>
+  const toolbarActions: ChToolbarAction[] = isBrowse
+    ? [
+        {
+          id: "add",
+          label: t("drive.files.action.add"),
+          icon: "plus",
+          onClick: startAdd,
+          disabled: files.busy || adding,
+        },
+        {
+          id: "upload",
+          label: t("drive.files.action.upload"),
+          icon: "upload",
+          variant: "primary",
+          onClick: () => fileInput.current?.click(),
+          disabled: files.busy,
+        },
+        {
+          id: "import-folder",
+          label: t("drive.files.import.folder"),
+          icon: "folder",
+          onClick: () => dirInput.current?.click(),
+          disabled: files.busy,
+        },
+      ]
+    : isTrash
+      ? [
+          {
+            id: "empty",
+            label: t("drive.files.action.emptyTrash"),
+            icon: "trash",
+            danger: true,
+            onClick: () => setConfirmEmpty(true),
+            disabled: files.busy || files.items.length === 0,
+          },
+        ]
+      : [
+          {
+            id: "back",
+            label: t("drive.files.action.backToFiles"),
+            icon: "close",
+            variant: "secondary",
+            onClick: () => setSearchInput(""),
+          },
+        ];
 
-        <div className="drive-breadcrumb-row">
-          {isBrowse ? (
-            <Breadcrumb
-              crumbs={files.ancestors}
-              rootLabel={t("drive.files.root")}
-              onNavigate={files.openFolder}
-              onDropNode={handleDropOn}
-            />
-          ) : (
-            <span className="drive-breadcrumb-current">{viewTitle}</span>
-          )}
-        </div>
+  const selectionActions: ChSelectionAction[] = isTrash
+    ? [
+        {
+          id: "restore",
+          label: t("drive.files.action.restore"),
+          icon: "check",
+          onClick: () => void bulkRestore(),
+          disabled: files.busy,
+        },
+        {
+          id: "purge",
+          label: t("drive.files.action.purge"),
+          icon: "trash",
+          danger: true,
+          onClick: () => setConfirmPurgeMany(true),
+          disabled: files.busy,
+        },
+      ]
+    : [
+        {
+          id: "move",
+          label: t("drive.files.action.move"),
+          icon: "folder",
+          onClick: () => setMovingNodes(selectedNodes),
+          disabled: files.busy || selectedNodes.length === 0,
+        },
+        {
+          id: "trash",
+          label: t("drive.files.action.trash"),
+          icon: "trash",
+          danger: true,
+          onClick: () => void bulkTrash(),
+          disabled: files.busy,
+        },
+      ];
 
-        {selectedIds.length > 0 && (
-          <div className="drive-selbar">
-            <button
-              type="button"
-              className="drive-selbar-clear"
-              aria-label={t("drive.files.selection.clear")}
-              onClick={clearSelection}
-            >
-              <Icon name="close" size="sm" />
-            </button>
-            <span className="drive-selbar-count">
-              {t("drive.files.selection.count", { count: String(selectedIds.length) })}
-            </span>
-            <span className="drive-selbar-spacer" />
+  const breadcrumbItems: ChBreadcrumbItem[] = files.ancestors.map((crumb, index) => ({
+    id: crumb.id,
+    label: index === 0 ? t("drive.files.root") : crumb.name,
+    icon: index === 0 ? "home" : undefined,
+    onClick: () => files.openFolder(crumb.id),
+  }));
+
+  const listView = (
+    <DataTable
+      columns={columns}
+      rows={rows}
+      getRowKey={(n) => n.id}
+      loading={files.loading}
+      emptyMessage={emptyMessage}
+      fixedLayout
+      stickyHeader
+      animateRows
+      enableKeyboardNav
+      actionsWidth="16%"
+      selectable
+      selectedKeys={selected}
+      onSelectionChange={setSelected}
+      onRowContextMenu={(n, e) => {
+        if (n.id === DRAFT_ID) return;
+        setMenu({ node: n, x: e.clientX, y: e.clientY });
+      }}
+      draggableRow={isBrowse ? (n) => n.id !== DRAFT_ID : undefined}
+      canDropRow={isBrowse ? (n) => n.kind === "folder" && n.id !== DRAFT_ID : undefined}
+      onRowDrop={isBrowse ? (target, draggedKey) => handleDropOn(target.id, draggedKey) : undefined}
+      onRowDoubleClick={
+        !isTrash
+          ? (n) => n.kind === "folder" && n.id !== DRAFT_ID && files.openFolder(n.id)
+          : undefined
+      }
+      actions={(n) => {
+        if (n.id === DRAFT_ID) return <RowActions />;
+        if (isMobile) {
+          return (
+            <RowActions>
+              <IconActionButton
+                icon="more"
+                variant="secondary"
+                aria-label={t("drive.files.action.more")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenu({ node: n, x: e.clientX, y: e.clientY });
+                }}
+                disabled={files.busy}
+              />
+            </RowActions>
+          );
+        }
+        return (
+          <RowActions>
             {isTrash ? (
               <>
                 <IconActionButton
                   icon="check"
-                  variant="secondary"
                   aria-label={t("drive.files.action.restore")}
-                  onClick={() => void bulkRestore()}
+                  onClick={() => void files.restore(n.id)}
                   disabled={files.busy}
                 />
-                <IconActionButton
-                  icon="trash"
-                  variant="danger"
+                <DeleteButton
                   aria-label={t("drive.files.action.purge")}
-                  onClick={() => setConfirmPurgeMany(true)}
+                  confirmTitle={`${t("drive.files.action.purge")} ?`}
+                  confirmMessage={t("drive.files.purge.message", { name: n.name })}
+                  confirmLabel={t("drive.files.action.purge")}
+                  cancelLabel={t("drive.cancel")}
                   disabled={files.busy}
+                  onConfirm={() => void files.purge(n.id)}
                 />
               </>
             ) : (
               <>
-                <IconActionButton
-                  icon="folder"
-                  variant="secondary"
-                  aria-label={t("drive.files.action.move")}
-                  onClick={() => setMovingNodes(selectedNodes)}
-                  disabled={files.busy || selectedNodes.length === 0}
-                />
+                {n.kind === "file" && (
+                  <IconActionButton
+                    icon="download"
+                    variant="secondary"
+                    aria-label={t("drive.files.action.download")}
+                    onClick={() => download(n)}
+                  />
+                )}
+                {isBrowse && (
+                  <EditButton
+                    aria-label={t("drive.files.action.rename")}
+                    onClick={() => openRename(n)}
+                    disabled={files.busy}
+                  />
+                )}
                 <IconActionButton
                   icon="trash"
                   variant="danger"
                   aria-label={t("drive.files.action.trash")}
-                  onClick={() => void bulkTrash()}
+                  onClick={() => void files.trash(n.id)}
                   disabled={files.busy}
                 />
               </>
             )}
-          </div>
+          </RowActions>
+        );
+      }}
+    />
+  );
+
+  const gridView = (
+    <FilesGrid
+      items={files.items}
+      selectedIds={selectedIds}
+      onSelectionChange={setSelected}
+      onOpenFolder={files.openFolder}
+      buildMenu={menuItems}
+      metadataFor={metadataFor}
+      enableOpen={!isTrash}
+      emptyMessage={emptyMessage}
+      menuLabel={t("drive.files.action.more")}
+      adding={adding && isBrowse}
+      draftName={draftName}
+      draftPlaceholder={t("drive.files.newFolder.placeholder")}
+      onDraftChange={setDraftName}
+      onCommitDraft={() => void commitDraft()}
+      onCancelDraft={cancelDraft}
+    />
+  );
+
+  const content = viewMode === "list" ? listView : gridView;
+
+  return (
+    <PageContent>
+      <Stack gap="lg">
+        {files.loadError && <Feedback severity="error">{files.loadError}</Feedback>}
+
+        <Toolbar search={search} view={view} actions={toolbarActions} />
+
+        {isBrowse ? (
+          breadcrumbItems.length > 0 && <Breadcrumb items={breadcrumbItems} />
+        ) : (
+          <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+            {viewTitle}
+          </Typography>
+        )}
+
+        {selectedIds.length > 0 && (
+          <Box data-selection-bar>
+            <SelectionBar
+              count={selectedIds.length}
+              actions={selectionActions}
+              onClear={clearSelection}
+              countLabel={(count) =>
+                t("drive.files.selection.count", { count: String(count) })
+              }
+            />
+          </Box>
         )}
 
         <input
@@ -502,119 +594,15 @@ export default function Files({ trash = false }: { trash?: boolean }) {
           onChange={(e) => void handleDirImport(e.target.files)}
         />
 
-        {viewMode === "list" ? (
-        <DataTable
-          columns={columns}
-          rows={rows}
-          getRowKey={(n) => n.id}
-          loading={files.loading}
-          emptyMessage={emptyMessage}
-          fixedLayout
-          stickyHeader
-          maxHeight="32rem"
-          animateRows
-          enableKeyboardNav
-          actionsWidth="16%"
-          selectable
-          selectedKeys={selected}
-          onSelectionChange={setSelected}
-          onRowContextMenu={(n, e) => {
-            if (n.id === DRAFT_ID) return;
-            setMenu({ node: n, x: e.clientX, y: e.clientY });
-          }}
-          draggableRow={isBrowse ? (n) => n.id !== DRAFT_ID : undefined}
-          canDropRow={isBrowse ? (n) => n.kind === "folder" && n.id !== DRAFT_ID : undefined}
-          onRowDrop={isBrowse ? (target, draggedKey) => handleDropOn(target.id, draggedKey) : undefined}
-          onRowDoubleClick={
-            !isTrash
-              ? (n) => n.kind === "folder" && n.id !== DRAFT_ID && files.openFolder(n.id)
-              : undefined
-          }
-          actions={(n) => {
-            if (n.id === DRAFT_ID) return <div className="drive-row-actions" />;
-            if (isMobile) {
-              return (
-                <div className="drive-row-actions">
-                  <IconActionButton
-                    icon="more"
-                    variant="secondary"
-                    aria-label={t("drive.files.action.more")}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenu({ node: n, x: e.clientX, y: e.clientY });
-                    }}
-                    disabled={files.busy}
-                  />
-                </div>
-              );
-            }
-            return (
-              <div className="drive-row-actions">
-                {isTrash ? (
-                  <>
-                    <IconActionButton
-                      icon="check"
-                      aria-label={t("drive.files.action.restore")}
-                      onClick={() => void files.restore(n.id)}
-                      disabled={files.busy}
-                    />
-                    <DeleteButton
-                      aria-label={t("drive.files.action.purge")}
-                      confirmTitle={`${t("drive.files.action.purge")} ?`}
-                      confirmMessage={t("drive.files.purge.message", { name: n.name })}
-                      confirmLabel={t("drive.files.action.purge")}
-                      cancelLabel={t("drive.cancel")}
-                      disabled={files.busy}
-                      onConfirm={() => void files.purge(n.id)}
-                    />
-                  </>
-                ) : (
-                  <>
-                    {n.kind === "file" && (
-                      <IconActionButton
-                        icon="download"
-                        variant="secondary"
-                        aria-label={t("drive.files.action.download")}
-                        onClick={() => download(n)}
-                      />
-                    )}
-                    {isBrowse && (
-                      <EditButton
-                        aria-label={t("drive.files.action.rename")}
-                        onClick={() => openRename(n)}
-                        disabled={files.busy}
-                      />
-                    )}
-                    <IconActionButton
-                      icon="trash"
-                      variant="danger"
-                      aria-label={t("drive.files.action.trash")}
-                      onClick={() => void files.trash(n.id)}
-                      disabled={files.busy}
-                    />
-                  </>
-                )}
-              </div>
-            );
-          }}
-        />
+        {isBrowse ? (
+          <Dropzone
+            onFiles={(list) => void files.upload(list)}
+            title={t("drive.files.import.dropHere")}
+          >
+            {content}
+          </Dropzone>
         ) : (
-          <FilesGrid
-            items={files.items}
-            selectedIds={selectedIds}
-            onSelectionChange={setSelected}
-            onOpenFolder={files.openFolder}
-            onContextMenu={(n, e) => setMenu({ node: n, x: e.clientX, y: e.clientY })}
-            iconFor={iconFor}
-            enableOpen={!isTrash}
-            emptyMessage={emptyMessage}
-            adding={adding && isBrowse}
-            draftName={draftName}
-            draftPlaceholder={t("drive.files.newFolder.placeholder")}
-            onDraftChange={setDraftName}
-            onCommitDraft={() => void commitDraft()}
-            onCancelDraft={cancelDraft}
-          />
+          content
         )}
       </Stack>
 
@@ -632,17 +620,22 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         onClose={() => setRenaming(null)}
         title={t("drive.files.rename.title")}
         footer={
-          <div className="drive-panel-footer">
+          <PanelFooter>
             <Button variant="secondary" onClick={() => setRenaming(null)} disabled={files.busy}>
               {t("drive.cancel")}
             </Button>
-            <Button onClick={() => void submitRename()} loading={files.busy} disabled={!renameName.trim()}>
+            <Button
+              onClick={() => void submitRename()}
+              loading={files.busy}
+              disabled={!renameName.trim()}
+            >
               {t("drive.save")}
             </Button>
-          </div>
+          </PanelFooter>
         }
       >
-        <form
+        <Stack
+          as="form"
           onSubmit={(e) => {
             e.preventDefault();
             void submitRename();
@@ -655,7 +648,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
             required
             autoFocus
           />
-        </form>
+        </Stack>
       </SidePanel>
 
       <SidePanel
@@ -707,15 +700,6 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         severity={files.toast?.severity}
         onClose={() => files.setToast(null)}
       />
-
-      {extDrag && isBrowse && (
-        <div className="drive-dropzone-overlay">
-          <div className="drive-dropzone-card">
-            <Icon name="upload" size="xl" />
-            <span>{t("drive.files.import.dropHere")}</span>
-          </div>
-        </div>
-      )}
     </PageContent>
   );
 }

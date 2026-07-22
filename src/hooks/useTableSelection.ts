@@ -31,7 +31,7 @@ export function useTableSelection({
       const target = e.target as HTMLElement;
       if (
         target.closest(
-          "[data-rowkey], thead, .drive-selbar, .MuiModal-root, .MuiPopover-root"
+          "[data-rowkey], thead, [data-selection-bar], .MuiModal-root, .MuiPopover-root"
         )
       )
         return;

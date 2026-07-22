@@ -4,6 +4,16 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    dedupe: [
+      "react",
+      "react-dom",
+      "@mui/material",
+      "@mui/system",
+      "@emotion/react",
+      "@emotion/styled",
+    ],
+  },
   server: {
     port: Number(process.env.PORT ?? 3202),
     strictPort: true,

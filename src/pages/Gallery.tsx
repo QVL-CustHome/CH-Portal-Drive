@@ -1,7 +1,19 @@
 import { useMemo, useState } from "react";
-import { Feedback, Heading, Icon, PageContent, Spinner, Stack, useTranslation } from "canopui";
-import Lightbox from "../components/Lightbox";
-import { thumbnailUrl, type Node } from "../api/drive";
+import Typography from "@mui/material/Typography";
+import {
+  CardGrid,
+  EmptyState,
+  Feedback,
+  Icon,
+  Lightbox,
+  PageContent,
+  Spinner,
+  Stack,
+  useTranslation,
+  type ChLightboxItem,
+} from "canopui";
+import GalleryTile from "../components/GalleryTile";
+import { contentUrlFor, type Node } from "../api/drive";
 import { useGallery } from "../hooks/useGallery";
 import { formatMonth } from "../lib/format";
 
@@ -34,62 +46,60 @@ function groupByMonth(items: Node[], locale: string): MonthGroup[] {
 export default function Gallery() {
   const { t, locale } = useTranslation();
   const { items, loading, loadError } = useGallery();
-  const [active, setActive] = useState<Node | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   const groups = useMemo(() => groupByMonth(items, locale), [items, locale]);
 
-  return (
-    <PageContent hideUtilitiesOnMobile fillHeight>
-      <Stack gap="lg">
-        <Heading level={1} size={3}>
-          {t("drive.gallery.title")}
-        </Heading>
+  const lightboxItems = useMemo<ChLightboxItem[]>(
+    () =>
+      items.map((node) => ({
+        src: contentUrlFor(node.id),
+        kind: node.media_type === "video" ? "document" : "image",
+        alt: node.name,
+        title: node.name,
+      })),
+    [items]
+  );
 
+  return (
+    <PageContent title={t("drive.gallery.title")}>
+      <Stack gap="lg">
         {loadError && <Feedback severity="error">{loadError}</Feedback>}
 
         {loading ? (
           <Spinner label={t("drive.gallery.loading")} />
         ) : items.length === 0 ? (
-          <Feedback severity="info">{t("drive.gallery.empty")}</Feedback>
+          <EmptyState
+            title={t("drive.gallery.empty")}
+            icon={<Icon name="image" size="xl" color="secondary" />}
+          />
         ) : (
           groups.map((group) => (
-            <section key={group.key} className="drive-gallery-section">
-              <h2 className="drive-gallery-month">{group.label}</h2>
-              <div className="drive-gallery-grid">
+            <Stack key={group.key} gap="sm">
+              <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+                {group.label}
+              </Typography>
+              <CardGrid minItemWidth="8rem" gap="sm">
                 {group.items.map((node) => (
-                  <button
-                    type="button"
+                  <GalleryTile
                     key={node.id}
-                    className="drive-gallery-tile"
-                    onClick={() => setActive(node)}
-                    title={node.name}
-                  >
-                    {node.has_thumbnail ? (
-                      <img
-                        className="drive-gallery-thumb"
-                        src={thumbnailUrl(node.id)}
-                        alt={node.name}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <span className="drive-gallery-placeholder">
-                        <Icon name={node.media_type === "video" ? "image" : "file"} size="lg" />
-                      </span>
-                    )}
-                    {node.media_type === "video" && (
-                      <span className="drive-gallery-badge" aria-hidden="true">
-                        ▶
-                      </span>
-                    )}
-                  </button>
+                    node={node}
+                    onOpen={() => setActiveIndex(items.findIndex((n) => n.id === node.id))}
+                  />
                 ))}
-              </div>
-            </section>
+              </CardGrid>
+            </Stack>
           ))
         )}
       </Stack>
 
-      {active && <Lightbox node={active} onClose={() => setActive(null)} />}
+      <Lightbox
+        open={activeIndex !== null}
+        onClose={() => setActiveIndex(null)}
+        items={lightboxItems}
+        index={activeIndex ?? 0}
+        onIndexChange={setActiveIndex}
+      />
     </PageContent>
   );
 }

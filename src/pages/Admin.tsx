@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Typography from "@mui/material/Typography";
 import {
   Button,
   DataTable,
@@ -16,6 +17,8 @@ import {
 import { type DriveAdminUser } from "../api/drive";
 import { useDriveAdmin } from "../hooks/useDriveAdmin";
 import { formatBytes, formatDate } from "../lib/format";
+import PanelFooter from "../components/PanelFooter";
+import RowActions from "../components/RowActions";
 
 const GIB = 1024 * 1024 * 1024;
 
@@ -46,10 +49,16 @@ export default function Admin() {
       width: "30%",
       sortValue: (u) => (u.name ?? u.user_id).toLowerCase(),
       render: (u) => (
-        <div className="drive-admin-user">
-          <span className="drive-admin-user-name">{u.name ?? u.user_id}</span>
-          {u.email && <span className="drive-storage-label drive-admin-user-email">{u.email}</span>}
-        </div>
+        <Stack gap="xs">
+          <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
+            {u.name ?? u.user_id}
+          </Typography>
+          {u.email && (
+            <Typography variant="caption" color="text.secondary" noWrap>
+              {u.email}
+            </Typography>
+          )}
+        </Stack>
       ),
     },
     {
@@ -74,7 +83,7 @@ export default function Admin() {
   ];
 
   return (
-    <PageContent hideUtilitiesOnMobile fillHeight title={t("drive.admin.title")}>
+    <PageContent fillHeight title={t("drive.admin.title")}>
       <Stack gap="lg" fill>
         {admin.loadError && <Feedback severity="error">{admin.loadError}</Feedback>}
 
@@ -91,7 +100,7 @@ export default function Admin() {
           enableKeyboardNav
           actionsWidth="14%"
           actions={(u) => (
-            <div className="drive-row-actions">
+            <RowActions>
               <IconActionButton
                 icon="refresh"
                 variant="secondary"
@@ -105,7 +114,7 @@ export default function Admin() {
                 onClick={() => openEdit(u)}
                 disabled={admin.busy}
               />
-            </div>
+            </RowActions>
           )}
         />
       </Stack>
@@ -115,22 +124,22 @@ export default function Admin() {
         onClose={() => setEditing(null)}
         title={t("drive.admin.editTitle")}
         footer={
-          <div className="drive-panel-footer">
+          <PanelFooter>
             <Button variant="secondary" onClick={() => setEditing(null)} disabled={admin.busy}>
               {t("drive.cancel")}
             </Button>
             <Button onClick={() => void submit()} loading={admin.busy} disabled={!quotaGiB.trim()}>
               {t("drive.save")}
             </Button>
-          </div>
+          </PanelFooter>
         }
       >
         {editing && (
           <Stack gap="md">
-            <span className="drive-storage-label">
+            <Typography variant="body2" color="text.secondary">
               {editing.name ?? editing.user_id} — {t("drive.admin.currentUsage")}{" "}
               {formatBytes(editing.used_bytes)}
-            </span>
+            </Typography>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
