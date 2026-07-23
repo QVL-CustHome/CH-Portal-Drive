@@ -182,6 +182,85 @@ describe("Dropzone en vue navigation", () => {
   });
 });
 
+describe("Menu Importer", () => {
+  async function openImportMenu() {
+    await userEvent.click(screen.getByRole("button", { name: "Importer" }));
+    return screen.findByRole("menu");
+  }
+
+  it("ouvre un menu avec les entrées Fichiers et Dossier", async () => {
+    useGridView();
+    renderWithProviders(<Files />);
+    await screen.findByText("Dossier A");
+
+    const menu = await openImportMenu();
+
+    expect(within(menu).getByRole("menuitem", { name: "Fichiers" })).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: "Dossier" })).toBeInTheDocument();
+  });
+
+  it("déclenche l'input fichier standard via l'entrée Fichiers", async () => {
+    const clickedWebkitDirectory: boolean[] = [];
+    const clickSpy = vi
+      .spyOn(HTMLInputElement.prototype, "click")
+      .mockImplementation(function (this: HTMLInputElement) {
+        clickedWebkitDirectory.push(this.hasAttribute("webkitdirectory"));
+      });
+
+    try {
+      useGridView();
+      renderWithProviders(<Files />);
+      await screen.findByText("Dossier A");
+
+      const menu = await openImportMenu();
+      await userEvent.click(within(menu).getByRole("menuitem", { name: "Fichiers" }));
+
+      expect(clickedWebkitDirectory).toContain(false);
+      expect(clickedWebkitDirectory).not.toContain(true);
+    } finally {
+      clickSpy.mockRestore();
+    }
+  });
+
+  it("déclenche l'input dossier webkitdirectory via l'entrée Dossier", async () => {
+    const clickedWebkitDirectory: boolean[] = [];
+    const clickSpy = vi
+      .spyOn(HTMLInputElement.prototype, "click")
+      .mockImplementation(function (this: HTMLInputElement) {
+        clickedWebkitDirectory.push(this.hasAttribute("webkitdirectory"));
+      });
+
+    try {
+      useGridView();
+      renderWithProviders(<Files />);
+      await screen.findByText("Dossier A");
+
+      const menu = await openImportMenu();
+      await userEvent.click(within(menu).getByRole("menuitem", { name: "Dossier" }));
+
+      expect(clickedWebkitDirectory).toContain(true);
+      expect(clickedWebkitDirectory).not.toContain(false);
+    } finally {
+      clickSpy.mockRestore();
+    }
+  });
+});
+
+describe("État vide", () => {
+  it("affiche la carte d'état vide quand le dossier est vide", async () => {
+    listNodes.mockResolvedValue({
+      parent_id: "root",
+      ancestors: [{ id: "root", name: "root" }],
+      items: [],
+    });
+    useGridView();
+    renderWithProviders(<Files />);
+
+    expect(await screen.findByText("Ce dossier est vide.")).toBeInTheDocument();
+    expect(screen.queryByText("Dossier A")).not.toBeInTheDocument();
+  });
+});
+
 describe("Absence de Dropzone hors navigation", () => {
   it("n'affiche pas d'overlay d'import en vue corbeille", async () => {
     useListView();
