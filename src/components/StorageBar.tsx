@@ -1,32 +1,31 @@
-import Typography from "@mui/material/Typography";
-import { Feedback, ProgressBar, Spinner, Stack, useTranslation } from "canopui";
-import { useStorageContext } from "../context/storage";
+import { Feedback, Spinner, useTranslation } from "canopui";
+import { useStorageBar } from "../hooks/useStorageBar";
 import { formatBytes } from "../lib/format";
+import StorageBarCompact from "./StorageBarCompact";
+import StorageBarFull from "./StorageBarFull";
 
 export default function StorageBar() {
   const { t } = useTranslation();
-  const { storage, loading, loadError } = useStorageContext();
+  const { loading, hasError, percent, usedBytes, quotaBytes, isCompact } = useStorageBar();
 
   if (loading) {
     return <Spinner label={t("drive.storage.loading")} />;
   }
-  if (loadError || !storage) {
+  if (hasError) {
     return <Feedback severity="error">{t("drive.storage.loadError")}</Feedback>;
   }
 
-  const ratio =
-    storage.quota_bytes > 0 ? Math.min(storage.used_bytes / storage.quota_bytes, 1) : 0;
-  const percent = Math.round(ratio * 100);
+  if (isCompact) {
+    return <StorageBarCompact title={t("drive.storage.title")} percent={percent} />;
+  }
 
   return (
-    <Stack gap="xs">
-      <Typography variant="caption" color="text.secondary">
-        {t("drive.storage.usage", {
-          used: formatBytes(storage.used_bytes),
-          quota: formatBytes(storage.quota_bytes),
-        })}
-      </Typography>
-      <ProgressBar value={percent} />
-    </Stack>
+    <StorageBarFull
+      usageLabel={t("drive.storage.usage", {
+        used: formatBytes(usedBytes),
+        quota: formatBytes(quotaBytes),
+      })}
+      percent={percent}
+    />
   );
 }

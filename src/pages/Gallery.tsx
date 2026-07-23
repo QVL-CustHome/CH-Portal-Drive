@@ -70,6 +70,7 @@ export default function Gallery() {
           <Spinner label={t("drive.gallery.loading")} />
         ) : items.length === 0 ? (
           <EmptyState
+            surface="plain"
             title={t("drive.gallery.empty")}
             icon={<Icon name="image" size="xl" color="secondary" />}
           />

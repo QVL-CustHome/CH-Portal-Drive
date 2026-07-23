@@ -50,7 +50,13 @@ export default function FilesGrid({
   };
 
   if (items.length === 0 && !adding) {
-    return <EmptyState title={emptyMessage} icon={<Icon name="folder" size="xl" color="secondary" />} />;
+    return (
+      <EmptyState
+        surface="plain"
+        title={emptyMessage}
+        icon={<Icon name="folder" size="xl" color="secondary" />}
+      />
+    );
   }
 
   return (
