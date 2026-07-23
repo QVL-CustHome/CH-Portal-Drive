@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import {
@@ -14,6 +14,8 @@ import {
   Icon,
   IconActionButton,
   Input,
+  Menu,
+  MenuItem,
   PageContent,
   SelectionBar,
   SidePanel,
@@ -58,6 +60,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
   const [propsNode, setPropsNode] = useState<Node | null>(null);
   const [movingNodes, setMovingNodes] = useState<Node[] | null>(null);
   const [confirmPurgeMany, setConfirmPurgeMany] = useState(false);
+  const [importAnchor, setImportAnchor] = useState<HTMLElement | null>(null);
   const [viewMode, setViewMode] = usePersistentViewMode();
 
   const isTrash = trash;
@@ -109,6 +112,22 @@ export default function Files({ trash = false }: { trash?: boolean }) {
     if (!list || list.length === 0) return;
     await files.importFolder(list);
     if (dirInput.current) dirInput.current.value = "";
+  };
+
+  const openImportMenu = (event?: MouseEvent<HTMLElement>) => {
+    setImportAnchor(event?.currentTarget ?? null);
+  };
+
+  const closeImportMenu = () => setImportAnchor(null);
+
+  const pickFiles = () => {
+    closeImportMenu();
+    fileInput.current?.click();
+  };
+
+  const pickFolder = () => {
+    closeImportMenu();
+    dirInput.current?.click();
   };
 
   const download = (node: Node) => {
@@ -353,18 +372,11 @@ export default function Files({ trash = false }: { trash?: boolean }) {
           disabled: files.busy || adding,
         },
         {
-          id: "upload",
+          id: "import",
           label: t("drive.files.action.upload"),
           icon: "upload",
           variant: "primary",
-          onClick: () => fileInput.current?.click(),
-          disabled: files.busy,
-        },
-        {
-          id: "import-folder",
-          label: t("drive.files.import.folder"),
-          icon: "folder",
-          onClick: () => dirInput.current?.click(),
+          onClick: openImportMenu,
           disabled: files.busy,
         },
       ]
@@ -614,6 +626,24 @@ export default function Files({ trash = false }: { trash?: boolean }) {
           onClose={() => setMenu(null)}
         />
       )}
+
+      <Menu
+        open={importAnchor !== null}
+        anchorEl={importAnchor}
+        onClose={closeImportMenu}
+        label={t("drive.files.action.upload")}
+      >
+        <MenuItem
+          label={t("drive.files.import.files")}
+          icon={<Icon name="upload" variant="outline" size="sm" color="inherit" />}
+          onClick={pickFiles}
+        />
+        <MenuItem
+          label={t("drive.files.import.folder")}
+          icon={<Icon name="folder" variant="outline" size="sm" color="inherit" />}
+          onClick={pickFolder}
+        />
+      </Menu>
 
       <SidePanel
         open={renaming !== null}
