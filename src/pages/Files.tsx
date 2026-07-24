@@ -370,6 +370,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
           icon: "plus",
           onClick: startAdd,
           disabled: files.busy || adding,
+          pinned: true,
         },
         {
           id: "import",
@@ -378,6 +379,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
           variant: "primary",
           onClick: openImportMenu,
           disabled: files.busy,
+          pinned: true,
         },
       ]
     : isTrash
@@ -389,6 +391,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
             danger: true,
             onClick: () => setConfirmEmpty(true),
             disabled: files.busy || files.items.length === 0,
+            pinned: true,
           },
         ]
       : [
@@ -398,6 +401,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
             icon: "close",
             variant: "secondary",
             onClick: () => setSearchInput(""),
+            pinned: true,
           },
         ];
 
