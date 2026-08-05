@@ -20,6 +20,7 @@ build:
     VITE_REDIRECT_COOKIE_DOMAIN: ".qvl-project.com"
   script:
     - npm ci
+    - npm install canopui@latest # toujours la derniere CanopUI dans l'artefact deploye
     - npm run build
   artifacts:
     paths: [dist/]
@@ -32,6 +33,17 @@ deploy:
   dependencies: [build]
   script:
     - sudo /usr/local/bin/ch-deploy-portal ch-portal-drive "$CI_PROJECT_DIR"
+
+# auto-pull du clone local persistant sur /mnt/c (evite les checkouts perimes en local)
+update-checkout:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  allow_failure: true
+  dependencies: []
+  script:
+    - git -C /mnt/c/QVL/QVL-CustHome/CH-Portal-Drive pull --ff-only origin main
+    - git -C /mnt/c/QVL/QVL-CustHome/CH-Portal-Drive log --oneline -1
 
 # ce portail n'a pas encore de tests unitaires -> vitest ne doit pas echouer sur suite vide
 test:
