@@ -1,6 +1,7 @@
 import Box from "@mui/material/Box";
 import { Card, CardGrid, EmptyState, Icon, Stack } from "canopui";
 import type { Node } from "../api/drive";
+import { isPreviewable } from "../lib/preview";
 import DriveFileCard from "./DriveFileCard";
 import InlineNameInput from "./InlineNameInput";
 import type { ContextMenuItem } from "./ContextMenu";
@@ -10,6 +11,8 @@ interface FilesGridProps {
   selectedIds: string[];
   onSelectionChange: (ids: string[]) => void;
   onOpenFolder: (id: string) => void;
+  /** Ouvre l'aperçu d'un fichier affichable. Absent = aucun aperçu possible. */
+  onOpenFile?: (node: Node) => void;
   buildMenu: (node: Node) => ContextMenuItem[];
   metadataFor: (node: Node) => string | undefined;
   enableOpen: boolean;
@@ -28,6 +31,7 @@ export default function FilesGrid({
   selectedIds,
   onSelectionChange,
   onOpenFolder,
+  onOpenFile,
   buildMenu,
   metadataFor,
   enableOpen,
@@ -47,6 +51,15 @@ export default function FilesGrid({
     if (next.has(id)) next.delete(id);
     else next.add(id);
     onSelectionChange([...next]);
+  };
+
+  // Un dossier s'ouvre, un fichier affichable se prévisualise, le reste ne
+  // réagit pas au clic (il reste téléchargeable par le menu).
+  const openHandler = (node: Node): (() => void) | undefined => {
+    if (!enableOpen) return undefined;
+    if (node.kind === "folder") return () => onOpenFolder(node.id);
+    if (onOpenFile && isPreviewable(node)) return () => onOpenFile(node);
+    return undefined;
   };
 
   if (items.length === 0 && !adding) {
@@ -81,7 +94,7 @@ export default function FilesGrid({
             node={node}
             selected={selectedSet.has(node.id)}
             onToggleSelect={() => toggle(node.id)}
-            onOpen={enableOpen && node.kind === "folder" ? () => onOpenFolder(node.id) : undefined}
+            onOpen={openHandler(node)}
             metadata={metadataFor(node)}
             menuItems={buildMenu(node)}
             menuLabel={menuLabel}
