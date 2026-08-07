@@ -39,7 +39,13 @@ import MovePanel from "../components/MovePanel";
 import NameCell from "../components/NameCell";
 import PanelFooter from "../components/PanelFooter";
 import RowActions from "../components/RowActions";
-import { contentUrlFor, downloadUrl, type Node } from "../api/drive";
+import {
+  contentUrlFor,
+  downloadUrl,
+  getPreviewInfo,
+  previewPageUrl,
+  type Node,
+} from "../api/drive";
 import { useFiles } from "../hooks/useFiles";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { usePersistentViewMode } from "../hooks/usePersistentViewMode";
@@ -62,6 +68,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
   const [menu, setMenu] = useState<{ node: Node; x: number; y: number } | null>(null);
   const [propsNode, setPropsNode] = useState<Node | null>(null);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [previewItems, setPreviewItems] = useState<ChLightboxItem[]>([]);
   const [movingNodes, setMovingNodes] = useState<Node[] | null>(null);
   const [confirmPurgeMany, setConfirmPurgeMany] = useState(false);
   const [importAnchor, setImportAnchor] = useState<HTMLElement | null>(null);
@@ -141,29 +148,56 @@ export default function Files({ trash = false }: { trash?: boolean }) {
     a.click();
   };
 
-  // Prévisualisation : la visionneuse parcourt les fichiers affichables du
-  // dossier courant, pour pouvoir naviguer de l'un à l'autre sans la refermer.
-  const previewables = useMemo(
-    () => (isTrash ? [] : files.items.filter(isPreviewable)),
+  // Prévisualisation. Deux modes selon ce qu'on ouvre :
+  //  - une image : on parcourt les images du dossier, pour passer de l'une à
+  //    l'autre sans refermer la visionneuse ;
+  //  - un PDF : on parcourt ses pages, rendues en images par le serveur. Les
+  //    afficher dans une `iframe` laisserait le lecteur du navigateur imposer
+  //    sa barre d'outils et sa page minuscule sur desktop, et ne montrerait
+  //    rien du tout sur mobile — seulement une proposition de téléchargement.
+  const images = useMemo(
+    () => (isTrash ? [] : files.items.filter((n) => previewKind(n) === "image")),
     [files.items, isTrash]
   );
 
-  const previewItems = useMemo<ChLightboxItem[]>(
-    () =>
-      previewables.map((node) => ({
-        src: contentUrlFor(node.id),
-        kind: previewKind(node) ?? "image",
-        alt: node.name,
-        title: node.name,
-      })),
-    [previewables]
-  );
-
-  const openPreview = (node: Node) => {
-    const index = previewables.findIndex((item) => item.id === node.id);
-    if (index >= 0) {
-      setPreviewIndex(index);
+  const openPreview = async (node: Node) => {
+    if (previewKind(node) === "document") {
+      const pages = await getPreviewInfo(node.id)
+        .then((info) => info.pages)
+        .catch(() => 0);
+      if (pages < 1) {
+        files.setToast({
+          message: t("drive.files.preview.unavailable"),
+          severity: "error",
+        });
+        return;
+      }
+      setPreviewItems(
+        Array.from({ length: pages }, (_, i) => ({
+          src: previewPageUrl(node.id, i + 1),
+          kind: "image" as const,
+          alt: t("drive.files.preview.pageAlt", {
+            name: node.name,
+            page: String(i + 1),
+          }),
+          title: pages > 1 ? `${node.name} — ${i + 1}/${pages}` : node.name,
+        }))
+      );
+      setPreviewIndex(0);
+      return;
     }
+
+    const index = images.findIndex((item) => item.id === node.id);
+    if (index < 0) return;
+    setPreviewItems(
+      images.map((image) => ({
+        src: contentUrlFor(image.id),
+        kind: "image" as const,
+        alt: image.name,
+        title: image.name,
+      }))
+    );
+    setPreviewIndex(index);
   };
 
   const handleDropOn = (targetParentId: string, draggedKey: string) => {
@@ -241,7 +275,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         items.push({
           icon: "image",
           label: t("drive.files.action.preview"),
-          onClick: () => openPreview(node),
+          onClick: () => void openPreview(node),
         });
       }
       items.push({
@@ -447,8 +481,26 @@ export default function Files({ trash = false }: { trash?: boolean }) {
           },
         ];
 
+  // Tous les éléments listés, hors brouillon de dossier en cours de saisie.
+  const selectableIds = files.items
+    .map((n) => n.id)
+    .filter((id) => id !== DRAFT_ID);
+  const allSelected =
+    selectableIds.length > 0 && selectedIds.length === selectableIds.length;
+
+  const selectAllAction: ChSelectionAction = {
+    id: "select-all",
+    label: allSelected
+      ? t("drive.files.action.selectNone")
+      : t("drive.files.action.selectAll"),
+    icon: "check",
+    onClick: () => setSelected(allSelected ? [] : selectableIds),
+    disabled: selectableIds.length === 0,
+  };
+
   const selectionActions: ChSelectionAction[] = isTrash
     ? [
+        selectAllAction,
         {
           id: "restore",
           label: t("drive.files.action.restore"),
@@ -466,6 +518,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         },
       ]
     : [
+        selectAllAction,
         {
           id: "move",
           label: t("drive.files.action.move"),
@@ -519,7 +572,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
               if (n.kind === "folder") {
                 files.openFolder(n.id);
               } else if (isPreviewable(n)) {
-                openPreview(n);
+                void openPreview(n);
               }
             }
           : undefined
@@ -600,7 +653,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
       selectedIds={selectedIds}
       onSelectionChange={setSelected}
       onOpenFolder={files.openFolder}
-      onOpenFile={openPreview}
+      onOpenFile={(node) => void openPreview(node)}
       buildMenu={menuItems}
       metadataFor={metadataFor}
       enableOpen={!isTrash}

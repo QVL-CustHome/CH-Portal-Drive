@@ -141,3 +141,17 @@ export function thumbnailUrl(id: string) {
 export function contentUrlFor(id: string) {
   return `/api/drive/files/${id}/content`;
 }
+
+export interface PreviewInfoResponse {
+  pages: number;
+}
+
+/** Nombre de pages d'un document prévisualisable (PDF). */
+export function getPreviewInfo(id: string) {
+  return request<PreviewInfoResponse>(`/drive/files/${id}/preview`);
+}
+
+/** Page d'un PDF rendue en image par le serveur (1-indexée). */
+export function previewPageUrl(id: string, page: number) {
+  return `/api/drive/files/${id}/preview/${page}`;
+}
