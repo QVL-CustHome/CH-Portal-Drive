@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import {
@@ -14,6 +14,7 @@ import {
   Icon,
   IconActionButton,
   Input,
+  Lightbox,
   Menu,
   MenuItem,
   PageContent,
@@ -25,6 +26,7 @@ import {
   useTranslation,
   type ChBreadcrumbItem,
   type ChColumn,
+  type ChLightboxItem,
   type ChSelectionAction,
   type ChToolbarAction,
   type ChToolbarSearchConfig,
@@ -37,7 +39,7 @@ import MovePanel from "../components/MovePanel";
 import NameCell from "../components/NameCell";
 import PanelFooter from "../components/PanelFooter";
 import RowActions from "../components/RowActions";
-import { downloadUrl, type Node } from "../api/drive";
+import { contentUrlFor, downloadUrl, type Node } from "../api/drive";
 import { useFiles } from "../hooks/useFiles";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { usePersistentViewMode } from "../hooks/usePersistentViewMode";
@@ -45,6 +47,7 @@ import { useTableSelection } from "../hooks/useTableSelection";
 import { useFolderDraft } from "../hooks/useFolderDraft";
 import { useDebouncedSearch } from "../hooks/useDebouncedSearch";
 import { formatBytes, formatDate } from "../lib/format";
+import { isPreviewable, previewKind } from "../lib/preview";
 
 const DRAFT_ID = "__draft__";
 
@@ -58,6 +61,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
   const [confirmEmpty, setConfirmEmpty] = useState(false);
   const [menu, setMenu] = useState<{ node: Node; x: number; y: number } | null>(null);
   const [propsNode, setPropsNode] = useState<Node | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [movingNodes, setMovingNodes] = useState<Node[] | null>(null);
   const [confirmPurgeMany, setConfirmPurgeMany] = useState(false);
   const [importAnchor, setImportAnchor] = useState<HTMLElement | null>(null);
@@ -137,6 +141,31 @@ export default function Files({ trash = false }: { trash?: boolean }) {
     a.click();
   };
 
+  // Prévisualisation : la visionneuse parcourt les fichiers affichables du
+  // dossier courant, pour pouvoir naviguer de l'un à l'autre sans la refermer.
+  const previewables = useMemo(
+    () => (isTrash ? [] : files.items.filter(isPreviewable)),
+    [files.items, isTrash]
+  );
+
+  const previewItems = useMemo<ChLightboxItem[]>(
+    () =>
+      previewables.map((node) => ({
+        src: contentUrlFor(node.id),
+        kind: previewKind(node) ?? "image",
+        alt: node.name,
+        title: node.name,
+      })),
+    [previewables]
+  );
+
+  const openPreview = (node: Node) => {
+    const index = previewables.findIndex((item) => item.id === node.id);
+    if (index >= 0) {
+      setPreviewIndex(index);
+    }
+  };
+
   const handleDropOn = (targetParentId: string, draggedKey: string) => {
     const dragged = files.items.find((n) => n.id === draggedKey);
     if (dragged && dragged.parent_id !== targetParentId) {
@@ -207,6 +236,14 @@ export default function Files({ trash = false }: { trash?: boolean }) {
       });
     }
     if (node.kind === "file") {
+      // Sur mobile le double-clic n'existe pas : l'aperçu doit rester atteignable ici.
+      if (isPreviewable(node)) {
+        items.push({
+          icon: "image",
+          label: t("drive.files.action.preview"),
+          onClick: () => openPreview(node),
+        });
+      }
       items.push({
         icon: "download",
         label: t("drive.files.action.download"),
@@ -356,7 +393,12 @@ export default function Files({ trash = false }: { trash?: boolean }) {
     ? {
         value: searchInput,
         onChange: setSearchInput,
-        placeholder: t("drive.files.search.placeholder"),
+        // Le libellé complet est tronqué dans le champ étroit du mobile.
+        placeholder: t(
+          isMobile
+            ? "drive.files.search.placeholderShort"
+            : "drive.files.search.placeholder"
+        ),
       }
     : undefined;
 
@@ -472,7 +514,14 @@ export default function Files({ trash = false }: { trash?: boolean }) {
       onRowDrop={isBrowse ? (target, draggedKey) => handleDropOn(target.id, draggedKey) : undefined}
       onRowDoubleClick={
         !isTrash
-          ? (n) => n.kind === "folder" && n.id !== DRAFT_ID && files.openFolder(n.id)
+          ? (n) => {
+              if (n.id === DRAFT_ID) return;
+              if (n.kind === "folder") {
+                files.openFolder(n.id);
+              } else if (isPreviewable(n)) {
+                openPreview(n);
+              }
+            }
           : undefined
       }
       actions={(n) => {
@@ -551,6 +600,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
       selectedIds={selectedIds}
       onSelectionChange={setSelected}
       onOpenFolder={files.openFolder}
+      onOpenFile={openPreview}
       buildMenu={menuItems}
       metadataFor={metadataFor}
       enableOpen={!isTrash}
@@ -733,6 +783,14 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         message={files.toast?.message ?? ""}
         severity={files.toast?.severity}
         onClose={() => files.setToast(null)}
+      />
+
+      <Lightbox
+        open={previewIndex !== null}
+        onClose={() => setPreviewIndex(null)}
+        items={previewItems}
+        index={previewIndex ?? 0}
+        onIndexChange={setPreviewIndex}
       />
     </PageContent>
   );
