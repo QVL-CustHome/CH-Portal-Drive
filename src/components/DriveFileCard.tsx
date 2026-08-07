@@ -28,7 +28,10 @@ export default function DriveFileCard({
   menuLabel,
 }: DriveFileCardProps) {
   const kind = kindFor(node);
-  const previewUrl = kind === "image" && node.has_thumbnail ? thumbnailUrl(node.id) : undefined;
+  // Dès qu'une miniature existe on montre le contenu plutôt que l'icône de
+  // type, quel que soit le format : l'API en produit pour les images comme
+  // pour les PDF.
+  const previewUrl = node.has_thumbnail ? thumbnailUrl(node.id) : undefined;
 
   return (
     <FileCard
