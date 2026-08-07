@@ -13,7 +13,6 @@ import {
   restoreNode,
   searchNodes,
   trashNode,
-  uploadFile,
   type Crumb,
   type Node,
 } from "../api/drive";
@@ -113,64 +112,7 @@ export function useFiles(initialView: FilesView = "files") {
     [run, parentId]
   );
 
-  const upload = useCallback(
-    async (files: FileList | File[]): Promise<boolean> => {
-      const list = Array.from(files);
-      if (list.length === 0) return false;
-      return run(async () => {
-        for (const file of list) {
-          await uploadFile(file, parentId);
-        }
-      }, "drive.files.uploaded");
-    },
-    [run, parentId]
-  );
 
-  const importFolder = useCallback(
-    async (files: FileList | File[]): Promise<boolean> => {
-      const list = Array.from(files);
-      if (list.length === 0) return false;
-      return run(async () => {
-        const cache = new Map<string, string>();
-        const ensureFolder = async (name: string, parent: string): Promise<string> => {
-          try {
-            const node = await createFolder(name, parent);
-            return node.id;
-          } catch (err) {
-            if (err instanceof ApiError && err.status === 409) {
-              const res = await listNodes(parent);
-              const existing = res.items.find((n) => n.kind === "folder" && n.name === name);
-              if (existing) return existing.id;
-            }
-            throw err;
-          }
-        };
-        const ensurePath = async (segments: string[]): Promise<string | null> => {
-          let path = "";
-          let parent = parentId;
-          for (const seg of segments) {
-            if (parent === null) return null;
-            const next = path ? `${path}/${seg}` : seg;
-            let id = cache.get(next);
-            if (id === undefined) {
-              id = await ensureFolder(seg, parent);
-              cache.set(next, id);
-            }
-            parent = id;
-            path = next;
-          }
-          return parent;
-        };
-        for (const file of list) {
-          const rel = file.webkitRelativePath || file.name;
-          const segments = rel.split("/").filter(Boolean).slice(0, -1);
-          const target = await ensurePath(segments);
-          if (target) await uploadFile(file, target);
-        }
-      }, "drive.files.folderImported");
-    },
-    [run, parentId]
-  );
 
   const rename = useCallback(
     (id: string, name: string) => run(() => renameNode(id, name), "drive.files.renamed"),
@@ -256,8 +198,6 @@ export function useFiles(initialView: FilesView = "files") {
     backToFiles,
     runSearch,
     newFolder,
-    upload,
-    importFolder,
     rename,
     move,
     trash,

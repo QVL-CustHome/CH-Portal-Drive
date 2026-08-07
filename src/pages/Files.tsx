@@ -24,6 +24,7 @@ import {
   Toast,
   Toolbar,
   useTranslation,
+  apiErrorMessage,
   type ChBreadcrumbItem,
   type ChColumn,
   type ChLightboxItem,
@@ -32,6 +33,7 @@ import {
   type ChToolbarSearchConfig,
   type ChToolbarViewConfig,
 } from "canopui";
+import { ApiError } from "../api/client";
 import ContextMenu, { type ContextMenuItem } from "../components/ContextMenu";
 import FilesGrid from "../components/FilesGrid";
 import InlineNameInput from "../components/InlineNameInput";
@@ -39,6 +41,7 @@ import MovePanel from "../components/MovePanel";
 import NameCell from "../components/NameCell";
 import PanelFooter from "../components/PanelFooter";
 import RowActions from "../components/RowActions";
+import UploadPanel from "../components/UploadPanel";
 import {
   contentUrlFor,
   downloadUrl,
@@ -47,6 +50,7 @@ import {
   type Node,
 } from "../api/drive";
 import { useFiles } from "../hooks/useFiles";
+import { useUploadQueue } from "../hooks/useUploadQueue";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { usePersistentViewMode } from "../hooks/usePersistentViewMode";
 import { useTableSelection } from "../hooks/useTableSelection";
@@ -94,6 +98,16 @@ export default function Files({ trash = false }: { trash?: boolean }) {
     onSearch: files.runSearch,
   });
 
+  const uploads = useUploadQueue({
+    onBatchFinished: files.reload,
+    describeError: (error) =>
+      apiErrorMessage(
+        t,
+        error instanceof ApiError ? error.code : undefined,
+        error instanceof ApiError ? error.message : t("drive.files.actionError")
+      ),
+  });
+
   useEffect(() => {
     if (dirInput.current) {
       dirInput.current.setAttribute("webkitdirectory", "");
@@ -113,15 +127,15 @@ export default function Files({ trash = false }: { trash?: boolean }) {
     if (ok) setRenaming(null);
   };
 
-  const handleUpload = async (list: FileList | null) => {
+  const handleUpload = (list: FileList | null) => {
     if (!list || list.length === 0) return;
-    await files.upload(list);
+    uploads.enqueue(list, files.parentId);
     if (fileInput.current) fileInput.current.value = "";
   };
 
-  const handleDirImport = async (list: FileList | null) => {
+  const handleDirImport = (list: FileList | null) => {
     if (!list || list.length === 0) return;
-    await files.importFolder(list);
+    uploads.enqueue(list, files.parentId);
     if (dirInput.current) dirInput.current.value = "";
   };
 
@@ -703,19 +717,19 @@ export default function Files({ trash = false }: { trash?: boolean }) {
           type="file"
           multiple
           hidden
-          onChange={(e) => void handleUpload(e.target.files)}
+          onChange={(e) => handleUpload(e.target.files)}
         />
         <input
           ref={dirInput}
           type="file"
           multiple
           hidden
-          onChange={(e) => void handleDirImport(e.target.files)}
+          onChange={(e) => handleDirImport(e.target.files)}
         />
 
         {isBrowse ? (
           <Dropzone
-            onFiles={(list) => void files.upload(list)}
+            onFiles={(list) => uploads.enqueue(list, files.parentId)}
             title={t("drive.files.import.dropHere")}
           >
             {content}
@@ -837,6 +851,8 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         severity={files.toast?.severity}
         onClose={() => files.setToast(null)}
       />
+
+      <UploadPanel queue={uploads} />
 
       <Lightbox
         open={previewIndex !== null}
