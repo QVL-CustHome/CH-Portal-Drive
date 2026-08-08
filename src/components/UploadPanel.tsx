@@ -3,33 +3,22 @@ import Typography from "@mui/material/Typography";
 import {
   Button,
   Card,
-  Icon,
   IconActionButton,
   ProgressBar,
   Stack,
   useTranslation,
-  type ChIconName,
 } from "canopui";
-import type { UploadItem, UploadQueue } from "../hooks/useUploadQueue";
-
-const STATUS_ICON: Record<UploadItem["status"], ChIconName> = {
-  queued: "clock",
-  uploading: "upload",
-  done: "check",
-  error: "close",
-};
-
-const STATUS_COLOR: Record<UploadItem["status"], string> = {
-  queued: "text.secondary",
-  uploading: "primary.main",
-  done: "success.main",
-  error: "error.main",
-};
+import type { UploadQueue } from "../hooks/useUploadQueue";
 
 export interface UploadPanelProps {
   queue: UploadQueue;
 }
 
+/**
+ * Suivi compact de l'envoi : le fichier en cours et un compteur, pas la liste
+ * entière. Sur un import de plusieurs centaines de fichiers, la liste défilante
+ * n'apprenait rien et mangeait l'écran.
+ */
 export default function UploadPanel({ queue }: UploadPanelProps) {
   const { t } = useTranslation();
 
@@ -38,15 +27,14 @@ export default function UploadPanel({ queue }: UploadPanelProps) {
   }
 
   const traites = queue.done + queue.failed;
-  const titre = queue.finished
-    ? t("drive.upload.finished", {
-        done: String(queue.done),
-        total: String(queue.total),
-      })
-    : t("drive.upload.progress", {
-        done: String(traites),
-        total: String(queue.total),
-      });
+  const pourcentage = Math.round((traites / queue.total) * 100);
+  const courant = queue.items.find((item) => item.status === "uploading");
+
+  const sousTitre = queue.finished
+    ? null
+    : queue.paused
+      ? t("drive.upload.pausedHint")
+      : (courant?.label ?? t("drive.upload.preparing"));
 
   return (
     <Box
@@ -54,7 +42,7 @@ export default function UploadPanel({ queue }: UploadPanelProps) {
         position: "fixed",
         right: { xs: "0.75rem", sm: "1.5rem" },
         bottom: { xs: "0.75rem", sm: "1.5rem" },
-        width: { xs: "calc(100% - 1.5rem)", sm: "24rem" },
+        width: { xs: "calc(100% - 1.5rem)", sm: "22rem" },
         maxWidth: "100%",
         zIndex: 1300,
       }}
@@ -63,7 +51,15 @@ export default function UploadPanel({ queue }: UploadPanelProps) {
         <Stack gap="sm">
           <Stack direction="row" alignItems="center" justifyContent="space-between" gap="sm">
             <Typography color="text.primary" sx={{ fontWeight: 600 }} noWrap>
-              {titre}
+              {queue.finished
+                ? t("drive.upload.finished", {
+                    done: String(queue.done),
+                    total: String(queue.total),
+                  })
+                : t("drive.upload.progress", {
+                    done: String(traites),
+                    total: String(queue.total),
+                  })}
             </Typography>
             <Stack direction="row" alignItems="center" gap="xs">
               {!queue.finished && (
@@ -84,66 +80,25 @@ export default function UploadPanel({ queue }: UploadPanelProps) {
           </Stack>
 
           <ProgressBar
-            value={queue.total === 0 ? 0 : Math.round((traites / queue.total) * 100)}
+            value={pourcentage}
             color={queue.failed > 0 ? "warning" : "primary"}
           />
 
-          {queue.paused && !queue.finished && (
-            <Typography variant="body2" color="text.secondary">
-              {t("drive.upload.pausedHint")}
+          {sousTitre && (
+            <Typography variant="body2" color="text.secondary" noWrap title={sousTitre}>
+              {sousTitre}
             </Typography>
           )}
 
-          <Box
-            component="ul"
-            sx={{
-              listStyle: "none",
-              margin: 0,
-              padding: 0,
-              maxHeight: "12rem",
-              overflowY: "auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.25rem",
-            }}
-          >
-            {queue.items.map((item) => (
-              <Box
-                key={item.id}
-                component="li"
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "auto 1fr",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  minWidth: 0,
-                }}
-              >
-                <Icon
-                  name={STATUS_ICON[item.status]}
-                  size="sm"
-                  color={item.status === "error" ? "error" : "inherit"}
-                />
-                <Box minWidth={0}>
-                  <Typography variant="body2" color="text.primary" noWrap title={item.label}>
-                    {item.label}
-                  </Typography>
-                  {item.error && (
-                    <Typography
-                      variant="caption"
-                      sx={{ color: STATUS_COLOR.error, display: "block" }}
-                    >
-                      {item.error}
-                    </Typography>
-                  )}
-                </Box>
-              </Box>
-            ))}
-          </Box>
+          {queue.skipped > 0 && (
+            <Typography variant="body2" color="text.secondary">
+              {t("drive.upload.skipped", { count: String(queue.skipped) })}
+            </Typography>
+          )}
 
           {queue.failed > 0 && (
             <Stack direction="row" justifyContent="space-between" alignItems="center" gap="sm">
-              <Typography variant="body2" sx={{ color: STATUS_COLOR.error }}>
+              <Typography variant="body2" color="error.main">
                 {t("drive.upload.failed", { count: String(queue.failed) })}
               </Typography>
               <Button variant="secondary" onClick={queue.retryFailed} disabled={queue.running}>

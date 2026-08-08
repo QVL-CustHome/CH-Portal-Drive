@@ -11,6 +11,7 @@ vi.mock("../api/drive", () => ({
 
 const uploadFile = vi.mocked(drive.uploadFile);
 const createFolder = vi.mocked(drive.createFolder);
+const listNodes = vi.mocked(drive.listNodes);
 
 function fichier(nom: string, chemin?: string): File {
   const f = new File(["x"], nom);
@@ -33,6 +34,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   uploadFile.mockResolvedValue({ id: "n" } as never);
   createFolder.mockResolvedValue({ id: "dossier" } as never);
+  listNodes.mockResolvedValue({ items: [] } as never);
 });
 
 describe("useUploadQueue", () => {
@@ -106,6 +108,19 @@ describe("useUploadQueue", () => {
     await waitFor(() => expect(result.current.finished).toBe(true));
     expect(createFolder).toHaveBeenCalledTimes(1);
     expect(uploadFile).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignore les fichiers déjà présents — relancer le même import le reprend", async () => {
+    listNodes.mockResolvedValue({ items: [{ name: "a.txt" }] } as never);
+    const { result } = monter();
+
+    act(() => result.current.enqueue([fichier("a.txt"), fichier("b.txt")], "root"));
+
+    await waitFor(() => expect(result.current.finished).toBe(true));
+    expect(result.current.skipped).toBe(1);
+    expect(result.current.done).toBe(1);
+    expect(uploadFile).toHaveBeenCalledTimes(1);
+    expect(uploadFile).toHaveBeenCalledWith(expect.objectContaining({ name: "b.txt" }), "root");
   });
 
   it("met en pause et ne reprend qu'à la demande", async () => {

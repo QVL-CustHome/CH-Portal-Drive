@@ -1,8 +1,8 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "../api/client";
 import { createFolder, listNodes, uploadFile } from "../api/drive";
 
-export type UploadStatus = "queued" | "uploading" | "done" | "error";
+export type UploadStatus = "queued" | "uploading" | "done" | "skipped" | "error";
 
 export interface UploadItem {
   id: string;
@@ -22,6 +22,8 @@ export interface UploadQueue {
   running: boolean;
   total: number;
   done: number;
+  /** Fichiers déjà présents dans le dossier cible, non renvoyés. */
+  skipped: number;
   failed: number;
   remaining: number;
   finished: boolean;
@@ -62,6 +64,10 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
   // Cache des dossiers créés, partagé par tout le lot : un même dossier n'est
   // résolu qu'une fois, quel que soit le nombre de fichiers qu'il contient.
   const foldersRef = useRef(new Map<string, string>());
+  // Noms déjà présents dans chaque dossier cible. Sert à ne pas renvoyer un
+  // fichier déjà là : relancer le même import reprend ainsi où il s'était
+  // arrêté, au lieu de tout retransférer et de récolter des conflits.
+  const listingsRef = useRef(new Map<string, Set<string>>());
 
   const apply = useCallback((next: UploadItem[]) => {
     itemsRef.current = next;
@@ -116,6 +122,21 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
     [ensureFolder]
   );
 
+  /** Noms des enfants d'un dossier, lus une seule fois par lot. */
+  const nomsDuDossier = useCallback(async (parent: string): Promise<Set<string>> => {
+    const connu = listingsRef.current.get(parent);
+    if (connu) return connu;
+    const noms = new Set<string>();
+    try {
+      const listing = await listNodes(parent);
+      for (const node of listing.items) noms.add(node.name);
+    } catch {
+      // Listing indisponible : on tente l'envoi, quitte à récolter un conflit.
+    }
+    listingsRef.current.set(parent, noms);
+    return noms;
+  }, []);
+
   const pump = useCallback(async () => {
     if (pumpingRef.current) return;
     pumpingRef.current = true;
@@ -134,7 +155,13 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
           if (cible === null) {
             throw new Error("dossier cible introuvable");
           }
+          const dejaLa = await nomsDuDossier(cible);
+          if (dejaLa.has(suivant.file.name)) {
+            setStatus(suivant.id, "skipped");
+            continue;
+          }
           await uploadFile(suivant.file, cible);
+          dejaLa.add(suivant.file.name);
           setStatus(suivant.id, "done");
           auMoinsUnEnvoi = true;
         } catch (error) {
@@ -146,7 +173,7 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
       setRunning(false);
       if (auMoinsUnEnvoi) onBatchFinished();
     }
-  }, [describeError, ensurePath, onBatchFinished, setStatus]);
+  }, [describeError, ensurePath, nomsDuDossier, onBatchFinished, setStatus]);
 
   const enqueue = useCallback(
     (files: FileList | File[], parentId: string | null) => {
@@ -167,8 +194,16 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
       });
 
       // Un nouveau lot repart de zéro : on retire les lignes déjà terminées
-      // pour que le compteur reflète l'envoi en cours.
-      update((current) => [...current.filter((item) => item.status !== "done"), ...nouveaux]);
+      // pour que le compteur reflète l'envoi en cours. Les caches ne survivent
+      // pas non plus à un lot, l'arborescence ayant pu changer entre-temps.
+      if (!pumpingRef.current) {
+        foldersRef.current.clear();
+        listingsRef.current.clear();
+      }
+      update((current) => [
+        ...current.filter((item) => item.status !== "done" && item.status !== "skipped"),
+        ...nouveaux,
+      ]);
       pausedRef.current = false;
       setPaused(false);
       void pump();
@@ -200,14 +235,27 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
 
   const dismiss = useCallback(() => {
     foldersRef.current.clear();
+    listingsRef.current.clear();
     apply([]);
   }, [apply]);
 
   const done = items.filter((item) => item.status === "done").length;
+  const skipped = items.filter((item) => item.status === "skipped").length;
   const failed = items.filter((item) => item.status === "error").length;
   const remaining = items.filter(
     (item) => item.status === "queued" || item.status === "uploading"
   ).length;
+
+  // Un envoi ne survit pas à la fermeture de l'onglet : les fichiers choisis
+  // n'existent que dans la page, le navigateur ne permet pas de les reprendre
+  // après coup. On prévient donc avant de quitter, seul moyen d'éviter la
+  // perte accidentelle.
+  useEffect(() => {
+    if (remaining === 0) return;
+    const avertir = (evenement: BeforeUnloadEvent) => evenement.preventDefault();
+    window.addEventListener("beforeunload", avertir);
+    return () => window.removeEventListener("beforeunload", avertir);
+  }, [remaining]);
 
   return {
     items,
@@ -215,6 +263,7 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
     running,
     total: items.length,
     done,
+    skipped,
     failed,
     remaining,
     finished: items.length > 0 && remaining === 0,
