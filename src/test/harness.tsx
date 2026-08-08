@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { ChI18nProvider, ChThemeProvider } from "canopui";
 import { defaultLocale, messages } from "../i18n/messages";
 import { StorageContext, type StorageContextValue } from "../context/storage";
+import { UploadProvider } from "../context/UploadProvider";
 import type { Node } from "../api/drive";
 
 export const storageStub: StorageContextValue = {
@@ -18,7 +19,9 @@ export function renderWithProviders(ui: ReactElement) {
     <ChI18nProvider locale={defaultLocale} messages={messages} storageKey={null}>
       <ChThemeProvider defaultMode="light">
         <MemoryRouter>
-          <StorageContext.Provider value={storageStub}>{ui}</StorageContext.Provider>
+          <StorageContext.Provider value={storageStub}>
+            <UploadProvider>{ui}</UploadProvider>
+          </StorageContext.Provider>
         </MemoryRouter>
       </ChThemeProvider>
     </ChI18nProvider>

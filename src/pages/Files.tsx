@@ -24,7 +24,6 @@ import {
   Toast,
   Toolbar,
   useTranslation,
-  apiErrorMessage,
   type ChBreadcrumbItem,
   type ChColumn,
   type ChLightboxItem,
@@ -33,7 +32,6 @@ import {
   type ChToolbarSearchConfig,
   type ChToolbarViewConfig,
 } from "canopui";
-import { ApiError } from "../api/client";
 import ContextMenu, { type ContextMenuItem } from "../components/ContextMenu";
 import FilesGrid from "../components/FilesGrid";
 import InlineNameInput from "../components/InlineNameInput";
@@ -41,7 +39,6 @@ import MovePanel from "../components/MovePanel";
 import NameCell from "../components/NameCell";
 import PanelFooter from "../components/PanelFooter";
 import RowActions from "../components/RowActions";
-import UploadPanel from "../components/UploadPanel";
 import {
   contentUrlFor,
   downloadUrl,
@@ -50,7 +47,7 @@ import {
   type Node,
 } from "../api/drive";
 import { useFiles } from "../hooks/useFiles";
-import { useUploadQueue } from "../hooks/useUploadQueue";
+import { useUploadContext } from "../context/upload";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { usePersistentViewMode } from "../hooks/usePersistentViewMode";
 import { useTableSelection } from "../hooks/useTableSelection";
@@ -98,15 +95,15 @@ export default function Files({ trash = false }: { trash?: boolean }) {
     onSearch: files.runSearch,
   });
 
-  const uploads = useUploadQueue({
-    onBatchFinished: files.reload,
-    describeError: (error) =>
-      apiErrorMessage(
-        t,
-        error instanceof ApiError ? error.code : undefined,
-        error instanceof ApiError ? error.message : t("drive.files.actionError")
-      ),
-  });
+  // La file vit au niveau du layout : elle survit ainsi au changement de page.
+  const uploads = useUploadContext();
+
+  // Un lot terminé ailleurs dans l'app doit se refléter ici.
+  const { lastBatchAt } = uploads;
+  const reload = files.reload;
+  useEffect(() => {
+    if (lastBatchAt > 0) void reload();
+  }, [lastBatchAt, reload]);
 
   useEffect(() => {
     if (dirInput.current) {
@@ -852,7 +849,6 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         onClose={() => files.setToast(null)}
       />
 
-      <UploadPanel queue={uploads} />
 
       <Lightbox
         open={previewIndex !== null}

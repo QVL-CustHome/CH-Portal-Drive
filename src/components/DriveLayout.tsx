@@ -2,7 +2,9 @@ import { useLocation, useNavigate, Outlet } from "react-router-dom";
 import { PageScaffold, useTranslation, type ChNavbarItem } from "canopui";
 import { useCurrentUser } from "../context/current-user";
 import { StorageProvider } from "../context/StorageProvider";
+import { UploadProvider } from "../context/UploadProvider";
 import StorageBar from "./StorageBar";
+import UploadPanel from "./UploadPanel";
 import { logout } from "../api/auth";
 import { navigateTo } from "../lib/navigation";
 import { loginUrl } from "../lib/auth-redirect";
@@ -33,18 +35,22 @@ export default function DriveLayout() {
 
   return (
     <StorageProvider>
-      <PageScaffold
-        navbarTitle="CustHome"
-        title={t("drive.brand")}
-        items={items}
-        activeHref={location.pathname}
-        onNavigate={(href) => navigate(href)}
-        userName={me.name}
-        onLogout={handleLogout}
-        sidebarWidget={<StorageBar />}
-      >
-        <Outlet />
-      </PageScaffold>
+      <UploadProvider>
+        <PageScaffold
+          navbarTitle="CustHome"
+          title={t("drive.brand")}
+          items={items}
+          activeHref={location.pathname}
+          onNavigate={(href) => navigate(href)}
+          userName={me.name}
+          onLogout={handleLogout}
+          sidebarWidget={<StorageBar />}
+        >
+          <Outlet />
+        </PageScaffold>
+        {/* Hors du scaffold : le suivi doit survivre au changement de page. */}
+        <UploadPanel />
+      </UploadProvider>
     </StorageProvider>
   );
 }

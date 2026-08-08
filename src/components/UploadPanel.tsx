@@ -8,19 +8,19 @@ import {
   Stack,
   useTranslation,
 } from "canopui";
-import type { UploadQueue } from "../hooks/useUploadQueue";
-
-export interface UploadPanelProps {
-  queue: UploadQueue;
-}
+import { useUploadContext } from "../context/upload";
 
 /**
  * Suivi compact de l'envoi : le fichier en cours et un compteur, pas la liste
  * entière. Sur un import de plusieurs centaines de fichiers, la liste défilante
  * n'apprenait rien et mangeait l'écran.
+ *
+ * Rendu par le layout et non par une page : le suivi doit rester visible quand
+ * on navigue pendant un import.
  */
-export default function UploadPanel({ queue }: UploadPanelProps) {
+export default function UploadPanel() {
   const { t } = useTranslation();
+  const queue = useUploadContext();
 
   if (queue.total === 0) {
     return null;
@@ -39,12 +39,17 @@ export default function UploadPanel({ queue }: UploadPanelProps) {
   return (
     <Box
       sx={{
+        // Placé comme un toast, en haut au centre : le bas de l'écran est déjà
+        // pris sur mobile par la barre de navigation et la jauge de stockage,
+        // toutes deux flottantes.
         position: "fixed",
-        right: { xs: "0.75rem", sm: "1.5rem" },
-        bottom: { xs: "0.75rem", sm: "1.5rem" },
-        width: { xs: "calc(100% - 1.5rem)", sm: "22rem" },
+        top: { xs: "calc(0.75rem + env(safe-area-inset-top))", sm: "1.5rem" },
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: { xs: "calc(100% - 1.5rem)", sm: "24rem" },
         maxWidth: "100%",
-        zIndex: 1300,
+        // Sous les toasts : un message transitoire doit rester lisible par-dessus.
+        zIndex: (theme) => theme.zIndex.snackbar - 1,
       }}
     >
       <Card elevation="lg" fill>
