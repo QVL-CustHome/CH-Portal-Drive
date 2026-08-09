@@ -14,8 +14,10 @@ const IMAGE_MIMES = [
   "image/avif",
 ];
 const DOCUMENT_MIMES = ["application/pdf"];
+/** Conteneurs que les navigateurs lisent nativement. */
+const VIDEO_MIMES = ["video/mp4", "video/webm", "video/ogg"];
 
-export type PreviewKind = "image" | "document";
+export type PreviewKind = "image" | "document" | "video";
 
 function typePrincipal(mime: string | null): string {
   return (mime ?? "").split(";")[0]!.trim().toLowerCase();
@@ -33,7 +35,16 @@ export function previewKind(node: Node): PreviewKind | null {
   if (DOCUMENT_MIMES.includes(mime)) {
     return "document";
   }
+  if (VIDEO_MIMES.includes(mime)) {
+    return "video";
+  }
   return null;
+}
+
+/** Une image ou une vidéo : ce qui se parcourt d'un média à l'autre. */
+export function isGalleryMedia(node: Node): boolean {
+  const kind = previewKind(node);
+  return kind === "image" || kind === "video";
 }
 
 export function isPreviewable(node: Node): boolean {

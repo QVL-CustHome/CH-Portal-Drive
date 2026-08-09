@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "../api/client";
-import { createFolder, listNodes, uploadFile } from "../api/drive";
+import { createFolder, listNodes } from "../api/drive";
+import { createFileUpload, estMiseEnPause, type FileUpload } from "../api/upload";
 
 export type UploadStatus = "queued" | "uploading" | "done" | "skipped" | "error";
 
@@ -27,6 +28,8 @@ export interface UploadQueue {
   failed: number;
   remaining: number;
   finished: boolean;
+  /** Avancement du fichier en cours, de 0 à 1. `null` hors envoi. */
+  progression: number | null;
   enqueue: (files: FileList | File[], parentId: string | null) => void;
   pause: () => void;
   resume: () => void;
@@ -52,11 +55,17 @@ interface Params {
  * Ici, **chaque fichier est indépendant** : un échec est enregistré sur sa
  * ligne et la file continue. Rien n'est perdu sans être signalé, et l'on peut
  * réessayer les échecs, mettre en pause et reprendre.
+ *
+ * L'envoi lui-même passe par {@link createFileUpload}, qui découpe les gros
+ * fichiers. C'était la cause des échecs irrattrapables : au-dessus de 17 Mio la
+ * passerelle refusait l'envoi d'un bloc, et réessayer reproduisait exactement
+ * le même refus.
  */
 export function useUploadQueue({ onBatchFinished, describeError }: Params): UploadQueue {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [paused, setPaused] = useState(false);
   const [running, setRunning] = useState(false);
+  const [progression, setProgression] = useState<number | null>(null);
 
   const itemsRef = useRef<UploadItem[]>([]);
   const pausedRef = useRef(false);
@@ -68,6 +77,10 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
   // fichier déjà là : relancer le même import reprend ainsi où il s'était
   // arrêté, au lieu de tout retransférer et de récolter des conflits.
   const listingsRef = useRef(new Map<string, Set<string>>());
+  // Envoi du fichier en cours, conservé pour pouvoir le reprendre là où il en
+  // était : sur un fichier de plusieurs gigaoctets, repartir du début après une
+  // pause reviendrait à ne jamais pouvoir la faire.
+  const enCoursRef = useRef<{ id: string; upload: FileUpload } | null>(null);
 
   const apply = useCallback((next: UploadItem[]) => {
     itemsRef.current = next;
@@ -76,15 +89,15 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
 
   const update = useCallback(
     (transform: (items: UploadItem[]) => UploadItem[]) => apply(transform(itemsRef.current)),
-    [apply]
+    [apply],
   );
 
   const setStatus = useCallback(
     (id: string, status: UploadStatus, error?: string) =>
       update((current) =>
-        current.map((item) => (item.id === id ? { ...item, status, error } : item))
+        current.map((item) => (item.id === id ? { ...item, status, error } : item)),
       ),
-    [update]
+    [update],
   );
 
   /** Crée le dossier s'il manque, le retrouve s'il existe déjà. */
@@ -119,7 +132,7 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
       }
       return parent;
     },
-    [ensureFolder]
+    [ensureFolder],
   );
 
   /** Noms des enfants d'un dossier, lus une seule fois par lot. */
@@ -160,11 +173,28 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
             setStatus(suivant.id, "skipped");
             continue;
           }
-          await uploadFile(suivant.file, cible);
+
+          const reprise = enCoursRef.current?.id === suivant.id ? enCoursRef.current.upload : null;
+          const upload =
+            reprise ?? createFileUpload(suivant.file, cible, (ratio) => setProgression(ratio));
+          enCoursRef.current = { id: suivant.id, upload };
+          setProgression(0);
+          await (reprise ? upload.resume() : upload.start());
+
+          enCoursRef.current = null;
+          setProgression(null);
           dejaLa.add(suivant.file.name);
           setStatus(suivant.id, "done");
           auMoinsUnEnvoi = true;
         } catch (error) {
+          if (estMiseEnPause(error)) {
+            // L'envoi reste en mémoire dans `enCoursRef` ; on remet la ligne en
+            // attente pour que la reprise la retrouve et continue le fichier.
+            setStatus(suivant.id, "queued");
+            break;
+          }
+          enCoursRef.current = null;
+          setProgression(null);
           setStatus(suivant.id, "error", describeError(error));
         }
       }
@@ -208,12 +238,15 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
       setPaused(false);
       void pump();
     },
-    [pump, update]
+    [pump, update],
   );
 
   const pause = useCallback(() => {
     pausedRef.current = true;
     setPaused(true);
+    // Interrompt le fichier en cours entre deux morceaux, sans quoi la pause
+    // n'aurait d'effet qu'une fois le fichier entier transféré.
+    enCoursRef.current?.upload.pause();
   }, []);
 
   const resume = useCallback(() => {
@@ -225,8 +258,8 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
   const retryFailed = useCallback(() => {
     update((current) =>
       current.map((item) =>
-        item.status === "error" ? { ...item, status: "queued", error: undefined } : item
-      )
+        item.status === "error" ? { ...item, status: "queued", error: undefined } : item,
+      ),
     );
     pausedRef.current = false;
     setPaused(false);
@@ -236,6 +269,8 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
   const dismiss = useCallback(() => {
     foldersRef.current.clear();
     listingsRef.current.clear();
+    enCoursRef.current = null;
+    setProgression(null);
     apply([]);
   }, [apply]);
 
@@ -243,7 +278,7 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
   const skipped = items.filter((item) => item.status === "skipped").length;
   const failed = items.filter((item) => item.status === "error").length;
   const remaining = items.filter(
-    (item) => item.status === "queued" || item.status === "uploading"
+    (item) => item.status === "queued" || item.status === "uploading",
   ).length;
 
   // Un envoi ne survit pas à la fermeture de l'onglet : les fichiers choisis
@@ -267,6 +302,7 @@ export function useUploadQueue({ onBatchFinished, describeError }: Params): Uplo
     failed,
     remaining,
     finished: items.length > 0 && remaining === 0,
+    progression,
     enqueue,
     pause,
     resume,

@@ -1,78 +1,56 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import {
   Breadcrumb,
-  Button,
   ConfirmDialog,
-  DataTable,
-  DeleteButton,
-  DescriptionList,
   Dropzone,
-  EditButton,
   Feedback,
   Icon,
-  IconActionButton,
-  Input,
   Lightbox,
   Menu,
   MenuItem,
   PageContent,
   SelectionBar,
-  SidePanel,
   Stack,
   Toast,
   Toolbar,
   useTranslation,
   type ChBreadcrumbItem,
-  type ChColumn,
-  type ChLightboxItem,
   type ChSelectionAction,
   type ChToolbarAction,
   type ChToolbarSearchConfig,
   type ChToolbarViewConfig,
 } from "canopui";
-import ContextMenu, { type ContextMenuItem } from "../components/ContextMenu";
+import ContextMenu from "../components/ContextMenu";
 import FilesGrid from "../components/FilesGrid";
-import InlineNameInput from "../components/InlineNameInput";
+import FilesTable from "../components/FilesTable";
 import MovePanel from "../components/MovePanel";
-import NameCell from "../components/NameCell";
-import PanelFooter from "../components/PanelFooter";
-import RowActions from "../components/RowActions";
-import {
-  contentUrlFor,
-  downloadUrl,
-  getPreviewInfo,
-  previewPageUrl,
-  type Node,
-} from "../api/drive";
+import PropertiesPanel from "../components/PropertiesPanel";
+import RenamePanel from "../components/RenamePanel";
+import { downloadUrl, type Node } from "../api/drive";
 import { useFiles } from "../hooks/useFiles";
 import { useUploadContext } from "../context/upload";
+import { useBulkActions } from "../hooks/useBulkActions";
+import { useFilePreview } from "../hooks/useFilePreview";
 import { useIsMobile } from "../hooks/useIsMobile";
+import { useNodeImport } from "../hooks/useNodeImport";
 import { usePersistentViewMode } from "../hooks/usePersistentViewMode";
 import { useTableSelection } from "../hooks/useTableSelection";
 import { useFolderDraft } from "../hooks/useFolderDraft";
 import { useDebouncedSearch } from "../hooks/useDebouncedSearch";
-import { formatBytes, formatDate } from "../lib/format";
-import { isPreviewable, previewKind } from "../lib/preview";
-
-const DRAFT_ID = "__draft__";
+import { DRAFT_ID } from "../lib/draft";
+import { formatBytes } from "../lib/format";
+import { buildNodeMenu } from "../lib/nodeMenu";
 
 export default function Files({ trash = false }: { trash?: boolean }) {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const files = useFiles(trash ? "trash" : "files");
-  const fileInput = useRef<HTMLInputElement>(null);
-  const dirInput = useRef<HTMLInputElement>(null);
   const [renaming, setRenaming] = useState<Node | null>(null);
   const [renameName, setRenameName] = useState("");
   const [confirmEmpty, setConfirmEmpty] = useState(false);
   const [menu, setMenu] = useState<{ node: Node; x: number; y: number } | null>(null);
   const [propsNode, setPropsNode] = useState<Node | null>(null);
-  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
-  const [previewItems, setPreviewItems] = useState<ChLightboxItem[]>([]);
-  const [movingNodes, setMovingNodes] = useState<Node[] | null>(null);
-  const [confirmPurgeMany, setConfirmPurgeMany] = useState(false);
-  const [importAnchor, setImportAnchor] = useState<HTMLElement | null>(null);
   const [viewMode, setViewMode] = usePersistentViewMode();
 
   const isTrash = trash;
@@ -97,6 +75,24 @@ export default function Files({ trash = false }: { trash?: boolean }) {
 
   // La file vit au niveau du layout : elle survit ainsi au changement de page.
   const uploads = useUploadContext();
+  const nodeImport = useNodeImport({
+    enqueue: uploads.enqueue,
+    parentId: files.parentId,
+  });
+
+  const preview = useFilePreview({
+    items: files.items,
+    enabled: !isTrash,
+    t,
+    onUnavailable: (message) => files.setToast({ message, severity: "error" }),
+  });
+
+  const bulk = useBulkActions({
+    files,
+    selectedIds,
+    selectedNodes,
+    clearSelection,
+  });
 
   // Un lot terminé ailleurs dans l'app doit se refléter ici.
   const { lastBatchAt } = uploads;
@@ -104,13 +100,6 @@ export default function Files({ trash = false }: { trash?: boolean }) {
   useEffect(() => {
     if (lastBatchAt > 0) void reload();
   }, [lastBatchAt, reload]);
-
-  useEffect(() => {
-    if (dirInput.current) {
-      dirInput.current.setAttribute("webkitdirectory", "");
-      dirInput.current.setAttribute("directory", "");
-    }
-  }, []);
 
   const openRename = (node: Node) => {
     setRenameName(node.name);
@@ -120,36 +109,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
   const submitRename = async () => {
     const name = renameName.trim();
     if (!name || !renaming) return;
-    const ok = await files.rename(renaming.id, name);
-    if (ok) setRenaming(null);
-  };
-
-  const handleUpload = (list: FileList | null) => {
-    if (!list || list.length === 0) return;
-    uploads.enqueue(list, files.parentId);
-    if (fileInput.current) fileInput.current.value = "";
-  };
-
-  const handleDirImport = (list: FileList | null) => {
-    if (!list || list.length === 0) return;
-    uploads.enqueue(list, files.parentId);
-    if (dirInput.current) dirInput.current.value = "";
-  };
-
-  const openImportMenu = (event?: MouseEvent<HTMLElement>) => {
-    setImportAnchor(event?.currentTarget ?? null);
-  };
-
-  const closeImportMenu = () => setImportAnchor(null);
-
-  const pickFiles = () => {
-    closeImportMenu();
-    fileInput.current?.click();
-  };
-
-  const pickFolder = () => {
-    closeImportMenu();
-    dirInput.current?.click();
+    if (await files.rename(renaming.id, name)) setRenaming(null);
   };
 
   const download = (node: Node) => {
@@ -159,58 +119,6 @@ export default function Files({ trash = false }: { trash?: boolean }) {
     a.click();
   };
 
-  // Prévisualisation. Deux modes selon ce qu'on ouvre :
-  //  - une image : on parcourt les images du dossier, pour passer de l'une à
-  //    l'autre sans refermer la visionneuse ;
-  //  - un PDF : on parcourt ses pages, rendues en images par le serveur. Les
-  //    afficher dans une `iframe` laisserait le lecteur du navigateur imposer
-  //    sa barre d'outils et sa page minuscule sur desktop, et ne montrerait
-  //    rien du tout sur mobile — seulement une proposition de téléchargement.
-  const images = useMemo(
-    () => (isTrash ? [] : files.items.filter((n) => previewKind(n) === "image")),
-    [files.items, isTrash]
-  );
-
-  const openPreview = async (node: Node) => {
-    if (previewKind(node) === "document") {
-      const pages = await getPreviewInfo(node.id)
-        .then((info) => info.pages)
-        .catch(() => 0);
-      if (pages < 1) {
-        files.setToast({
-          message: t("drive.files.preview.unavailable"),
-          severity: "error",
-        });
-        return;
-      }
-      setPreviewItems(
-        Array.from({ length: pages }, (_, i) => ({
-          src: previewPageUrl(node.id, i + 1),
-          kind: "image" as const,
-          alt: t("drive.files.preview.pageAlt", {
-            name: node.name,
-            page: String(i + 1),
-          }),
-          title: pages > 1 ? `${node.name} — ${i + 1}/${pages}` : node.name,
-        }))
-      );
-      setPreviewIndex(0);
-      return;
-    }
-
-    const index = images.findIndex((item) => item.id === node.id);
-    if (index < 0) return;
-    setPreviewItems(
-      images.map((image) => ({
-        src: contentUrlFor(image.id),
-        kind: "image" as const,
-        alt: image.name,
-        title: image.name,
-      }))
-    );
-    setPreviewIndex(index);
-  };
-
   const handleDropOn = (targetParentId: string, draggedKey: string) => {
     const dragged = files.items.find((n) => n.id === draggedKey);
     if (dragged && dragged.parent_id !== targetParentId) {
@@ -218,114 +126,23 @@ export default function Files({ trash = false }: { trash?: boolean }) {
     }
   };
 
-  const bulkTrash = async () => {
-    const ok = await files.trashMany(selectedIds);
-    if (ok) clearSelection();
-  };
-
-  const bulkRestore = async () => {
-    const ok = await files.restoreMany(selectedIds);
-    if (ok) clearSelection();
-  };
-
-  const bulkPurge = async () => {
-    const ok = await files.purgeMany(selectedIds);
-    if (ok) clearSelection();
-    setConfirmPurgeMany(false);
-  };
-
-  const confirmMove = async (target: string) => {
-    const ids = (movingNodes ?? []).map((n) => n.id);
-    const ok = await files.moveMany(ids, target);
-    if (ok) {
-      setMovingNodes(null);
-      clearSelection();
-    }
-  };
-
-  const openMove = (node: Node) => {
-    const inSelection = selectedIds.includes(node.id) && selectedNodes.length > 0;
-    setMovingNodes(inSelection ? selectedNodes : [node]);
-  };
-
-  const menuItems = (node: Node): ContextMenuItem[] => {
-    if (isTrash) {
-      return [
-        {
-          icon: "check",
-          label: t("drive.files.action.restore"),
-          onClick: () => void files.restore(node.id),
-        },
-        {
-          icon: "trash",
-          label: t("drive.files.action.purge"),
-          danger: true,
-          onClick: () => {
-            setSelected([node.id]);
-            setConfirmPurgeMany(true);
-          },
-        },
-        {
-          icon: "eye",
-          label: t("drive.files.action.properties"),
-          onClick: () => setPropsNode(node),
-        },
-      ];
-    }
-    const items: ContextMenuItem[] = [];
-    if (node.kind === "folder") {
-      items.push({
-        icon: "folder",
-        label: t("drive.files.action.open"),
-        onClick: () => files.openFolder(node.id),
-      });
-    }
-    if (node.kind === "file") {
-      // Sur mobile le double-clic n'existe pas : l'aperçu doit rester atteignable ici.
-      if (isPreviewable(node)) {
-        items.push({
-          icon: "image",
-          label: t("drive.files.action.preview"),
-          onClick: () => void openPreview(node),
-        });
-      }
-      items.push({
-        icon: "download",
-        label: t("drive.files.action.download"),
-        onClick: () => download(node),
-      });
-    }
-    items.push({
-      icon: "pencil",
-      label: t("drive.files.action.rename"),
-      onClick: () => openRename(node),
+  const menuItems = (node: Node) =>
+    buildNodeMenu(node, {
+      isTrash,
+      t,
+      openFolder: files.openFolder,
+      preview: (n) => void preview.open(n),
+      download,
+      rename: openRename,
+      move: bulk.openMove,
+      showProperties: setPropsNode,
+      trash: (id) => void files.trash(id),
+      restore: (id) => void files.restore(id),
+      purge: (n) => {
+        setSelected([n.id]);
+        bulk.setConfirmPurge(true);
+      },
     });
-    items.push({
-      icon: "folder",
-      label: t("drive.files.action.move"),
-      onClick: () => openMove(node),
-    });
-    items.push({
-      icon: "eye",
-      label: t("drive.files.action.properties"),
-      onClick: () => setPropsNode(node),
-    });
-    items.push({
-      icon: "trash",
-      label: t("drive.files.action.trash"),
-      danger: true,
-      onClick: () => void files.trash(node.id),
-    });
-    return items;
-  };
-
-  const iconFor = (node: Node) => {
-    if (node.kind === "folder") return "folder";
-    return node.is_media && node.media_type === "image" ? "image" : "file";
-  };
-
-  const metadataFor = (node: Node) =>
-    node.kind === "file" ? formatBytes(node.size_bytes) : undefined;
 
   const viewTitle = isTrash
     ? t("drive.files.trash.title")
@@ -359,90 +176,13 @@ export default function Files({ trash = false }: { trash?: boolean }) {
   };
   const rows = adding && isBrowse ? [draftNode, ...files.items] : files.items;
 
-  const propItems = propsNode
-    ? [
-        { label: t("drive.props.name"), value: propsNode.name },
-        {
-          label: t("drive.props.kind"),
-          value:
-            propsNode.kind === "folder"
-              ? t("drive.props.folder")
-              : (propsNode.mime ?? t("drive.props.file")),
-        },
-        ...(propsNode.kind === "file"
-          ? [{ label: t("drive.props.size"), value: formatBytes(propsNode.size_bytes) }]
-          : []),
-        ...(propsNode.width && propsNode.height
-          ? [
-              {
-                label: t("drive.props.dimensions"),
-                value: t("drive.props.dimensions.value", {
-                  width: String(propsNode.width),
-                  height: String(propsNode.height),
-                }),
-              },
-            ]
-          : []),
-        { label: t("drive.props.created"), value: formatDate(propsNode.created_at, locale) },
-        { label: t("drive.props.modified"), value: formatDate(propsNode.updated_at, locale) },
-      ]
-    : [];
-
-  const columns: ChColumn<Node>[] = [
-    {
-      key: "name",
-      header: t("drive.files.col.name"),
-      sortable: true,
-      sortValue: (n) => `${n.kind === "folder" ? 0 : 1}${n.name.toLowerCase()}`,
-      render: (n) => {
-        if (n.id === DRAFT_ID) {
-          return (
-            <Stack direction="row" alignItems="center" gap="xs">
-              <Icon name="folder" size="md" color="secondary" />
-              <InlineNameInput
-                value={draftName}
-                placeholder={t("drive.files.newFolder.placeholder")}
-                onChange={setDraftName}
-                onCommit={() => void commitDraft()}
-                onCancel={cancelDraft}
-              />
-            </Stack>
-          );
-        }
-        return <NameCell icon={iconFor(n)} name={n.name} />;
-      },
-    },
-    {
-      key: "size_bytes",
-      header: t("drive.files.col.size"),
-      width: "16%",
-      align: "right",
-      hideOnMobile: true,
-      sortable: true,
-      sortValue: (n) => n.size_bytes,
-      render: (n) =>
-        n.id === DRAFT_ID ? "" : n.kind === "folder" ? "—" : formatBytes(n.size_bytes),
-    },
-    {
-      key: "updated_at",
-      header: t("drive.files.col.modified"),
-      width: "22%",
-      hideOnMobile: true,
-      sortable: true,
-      sortValue: (n) => n.updated_at,
-      render: (n) => (n.id === DRAFT_ID ? "" : formatDate(n.updated_at, locale)),
-    },
-  ];
-
   const search: ChToolbarSearchConfig | undefined = !isTrash
     ? {
         value: searchInput,
         onChange: setSearchInput,
         // Le libellé complet est tronqué dans le champ étroit du mobile.
         placeholder: t(
-          isMobile
-            ? "drive.files.search.placeholderShort"
-            : "drive.files.search.placeholder"
+          isMobile ? "drive.files.search.placeholderShort" : "drive.files.search.placeholder",
         ),
       }
     : undefined;
@@ -464,7 +204,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
           label: t("drive.files.action.upload"),
           icon: "upload",
           variant: "primary",
-          onClick: openImportMenu,
+          onClick: nodeImport.openMenu,
           disabled: files.busy,
           pinned: true,
         },
@@ -493,17 +233,12 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         ];
 
   // Tous les éléments listés, hors brouillon de dossier en cours de saisie.
-  const selectableIds = files.items
-    .map((n) => n.id)
-    .filter((id) => id !== DRAFT_ID);
-  const allSelected =
-    selectableIds.length > 0 && selectedIds.length === selectableIds.length;
+  const selectableIds = files.items.map((n) => n.id).filter((id) => id !== DRAFT_ID);
+  const allSelected = selectableIds.length > 0 && selectedIds.length === selectableIds.length;
 
   const selectAllAction: ChSelectionAction = {
     id: "select-all",
-    label: allSelected
-      ? t("drive.files.action.selectNone")
-      : t("drive.files.action.selectAll"),
+    label: allSelected ? t("drive.files.action.selectNone") : t("drive.files.action.selectAll"),
     icon: "check",
     onClick: () => setSelected(allSelected ? [] : selectableIds),
     disabled: selectableIds.length === 0,
@@ -516,7 +251,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
           id: "restore",
           label: t("drive.files.action.restore"),
           icon: "check",
-          onClick: () => void bulkRestore(),
+          onClick: () => void bulk.restoreSelection(),
           disabled: files.busy,
         },
         {
@@ -524,7 +259,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
           label: t("drive.files.action.purge"),
           icon: "trash",
           danger: true,
-          onClick: () => setConfirmPurgeMany(true),
+          onClick: () => bulk.setConfirmPurge(true),
           disabled: files.busy,
         },
       ]
@@ -534,7 +269,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
           id: "move",
           label: t("drive.files.action.move"),
           icon: "folder",
-          onClick: () => setMovingNodes(selectedNodes),
+          onClick: bulk.moveSelection,
           disabled: files.busy || selectedNodes.length === 0,
         },
         {
@@ -542,7 +277,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
           label: t("drive.files.action.trash"),
           icon: "trash",
           danger: true,
-          onClick: () => void bulkTrash(),
+          onClick: () => void bulk.trashSelection(),
           disabled: files.busy,
         },
       ];
@@ -554,132 +289,52 @@ export default function Files({ trash = false }: { trash?: boolean }) {
     onClick: () => files.openFolder(crumb.id),
   }));
 
-  const listView = (
-    <DataTable
-      columns={columns}
-      rows={rows}
-      getRowKey={(n) => n.id}
-      loading={files.loading}
-      emptyMessage={emptyMessage}
-      fixedLayout
-      stickyHeader
-      animateRows
-      enableKeyboardNav
-      actionsWidth="16%"
-      selectable
-      selectedKeys={selected}
-      onSelectionChange={setSelected}
-      onRowContextMenu={(n, e) => {
-        if (n.id === DRAFT_ID) return;
-        setMenu({ node: n, x: e.clientX, y: e.clientY });
-      }}
-      draggableRow={isBrowse ? (n) => n.id !== DRAFT_ID : undefined}
-      canDropRow={isBrowse ? (n) => n.kind === "folder" && n.id !== DRAFT_ID : undefined}
-      onRowDrop={isBrowse ? (target, draggedKey) => handleDropOn(target.id, draggedKey) : undefined}
-      onRowDoubleClick={
-        !isTrash
-          ? (n) => {
-              if (n.id === DRAFT_ID) return;
-              if (n.kind === "folder") {
-                files.openFolder(n.id);
-              } else if (isPreviewable(n)) {
-                void openPreview(n);
-              }
-            }
-          : undefined
-      }
-      actions={(n) => {
-        if (n.id === DRAFT_ID) return <RowActions />;
-        if (isMobile) {
-          return (
-            <RowActions>
-              <IconActionButton
-                icon="more"
-                variant="secondary"
-                aria-label={t("drive.files.action.more")}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenu({ node: n, x: e.clientX, y: e.clientY });
-                }}
-                disabled={files.busy}
-              />
-            </RowActions>
-          );
-        }
-        return (
-          <RowActions>
-            {isTrash ? (
-              <>
-                <IconActionButton
-                  icon="check"
-                  aria-label={t("drive.files.action.restore")}
-                  onClick={() => void files.restore(n.id)}
-                  disabled={files.busy}
-                />
-                <DeleteButton
-                  aria-label={t("drive.files.action.purge")}
-                  confirmTitle={`${t("drive.files.action.purge")} ?`}
-                  confirmMessage={t("drive.files.purge.message", { name: n.name })}
-                  confirmLabel={t("drive.files.action.purge")}
-                  cancelLabel={t("drive.cancel")}
-                  disabled={files.busy}
-                  onConfirm={() => void files.purge(n.id)}
-                />
-              </>
-            ) : (
-              <>
-                {n.kind === "file" && (
-                  <IconActionButton
-                    icon="download"
-                    variant="secondary"
-                    aria-label={t("drive.files.action.download")}
-                    onClick={() => download(n)}
-                  />
-                )}
-                {isBrowse && (
-                  <EditButton
-                    aria-label={t("drive.files.action.rename")}
-                    onClick={() => openRename(n)}
-                    disabled={files.busy}
-                  />
-                )}
-                <IconActionButton
-                  icon="trash"
-                  variant="danger"
-                  aria-label={t("drive.files.action.trash")}
-                  onClick={() => void files.trash(n.id)}
-                  disabled={files.busy}
-                />
-              </>
-            )}
-          </RowActions>
-        );
-      }}
-    />
-  );
-
-  const gridView = (
-    <FilesGrid
-      items={files.items}
-      selectedIds={selectedIds}
-      onSelectionChange={setSelected}
-      onOpenFolder={files.openFolder}
-      onOpenFile={(node) => void openPreview(node)}
-      buildMenu={menuItems}
-      metadataFor={metadataFor}
-      enableOpen={!isTrash}
-      emptyMessage={emptyMessage}
-      menuLabel={t("drive.files.action.more")}
-      adding={adding && isBrowse}
-      draftName={draftName}
-      draftPlaceholder={t("drive.files.newFolder.placeholder")}
-      onDraftChange={setDraftName}
-      onCommitDraft={() => void commitDraft()}
-      onCancelDraft={cancelDraft}
-    />
-  );
-
-  const content = viewMode === "list" ? listView : gridView;
+  const content =
+    viewMode === "list" ? (
+      <FilesTable
+        rows={rows}
+        loading={files.loading}
+        busy={files.busy}
+        emptyMessage={emptyMessage}
+        isTrash={isTrash}
+        isBrowse={isBrowse}
+        isMobile={isMobile}
+        selected={selected}
+        onSelectionChange={setSelected}
+        draftName={draftName}
+        onDraftChange={setDraftName}
+        onCommitDraft={() => void commitDraft()}
+        onCancelDraft={cancelDraft}
+        onOpenFolder={files.openFolder}
+        onPreview={(n) => void preview.open(n)}
+        onDownload={download}
+        onRename={openRename}
+        onTrash={(id) => void files.trash(id)}
+        onRestore={(id) => void files.restore(id)}
+        onPurge={(id) => void files.purge(id)}
+        onContextMenu={(node, position) => setMenu({ node, ...position })}
+        onDropOn={handleDropOn}
+      />
+    ) : (
+      <FilesGrid
+        items={files.items}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelected}
+        onOpenFolder={files.openFolder}
+        onOpenFile={(node) => void preview.open(node)}
+        buildMenu={menuItems}
+        metadataFor={(node) => (node.kind === "file" ? formatBytes(node.size_bytes) : undefined)}
+        enableOpen={!isTrash}
+        emptyMessage={emptyMessage}
+        menuLabel={t("drive.files.action.more")}
+        adding={adding && isBrowse}
+        draftName={draftName}
+        draftPlaceholder={t("drive.files.newFolder.placeholder")}
+        onDraftChange={setDraftName}
+        onCommitDraft={() => void commitDraft()}
+        onCancelDraft={cancelDraft}
+      />
+    );
 
   return (
     <PageContent>
@@ -702,26 +357,24 @@ export default function Files({ trash = false }: { trash?: boolean }) {
               count={selectedIds.length}
               actions={selectionActions}
               onClear={clearSelection}
-              countLabel={(count) =>
-                t("drive.files.selection.count", { count: String(count) })
-              }
+              countLabel={(count) => t("drive.files.selection.count", { count: String(count) })}
             />
           </Box>
         )}
 
         <input
-          ref={fileInput}
+          ref={nodeImport.fileInput}
           type="file"
           multiple
           hidden
-          onChange={(e) => handleUpload(e.target.files)}
+          onChange={(e) => nodeImport.acceptFiles(e.target.files)}
         />
         <input
-          ref={dirInput}
+          ref={nodeImport.dirInput}
           type="file"
           multiple
           hidden
-          onChange={(e) => handleDirImport(e.target.files)}
+          onChange={(e) => nodeImport.acceptFolder(e.target.files)}
         />
 
         {isBrowse ? (
@@ -746,73 +399,40 @@ export default function Files({ trash = false }: { trash?: boolean }) {
       )}
 
       <Menu
-        open={importAnchor !== null}
-        anchorEl={importAnchor}
-        onClose={closeImportMenu}
+        open={nodeImport.anchor !== null}
+        anchorEl={nodeImport.anchor}
+        onClose={nodeImport.closeMenu}
         label={t("drive.files.action.upload")}
       >
         <MenuItem
           label={t("drive.files.import.files")}
           icon={<Icon name="upload" variant="outline" size="sm" color="inherit" />}
-          onClick={pickFiles}
+          onClick={nodeImport.pickFiles}
         />
         <MenuItem
           label={t("drive.files.import.folder")}
           icon={<Icon name="folder" variant="outline" size="sm" color="inherit" />}
-          onClick={pickFolder}
+          onClick={nodeImport.pickFolder}
         />
       </Menu>
 
-      <SidePanel
+      <RenamePanel
         open={renaming !== null}
+        value={renameName}
+        busy={files.busy}
+        onChange={setRenameName}
+        onSubmit={() => void submitRename()}
         onClose={() => setRenaming(null)}
-        title={t("drive.files.rename.title")}
-        footer={
-          <PanelFooter>
-            <Button variant="secondary" onClick={() => setRenaming(null)} disabled={files.busy}>
-              {t("drive.cancel")}
-            </Button>
-            <Button
-              onClick={() => void submitRename()}
-              loading={files.busy}
-              disabled={!renameName.trim()}
-            >
-              {t("drive.save")}
-            </Button>
-          </PanelFooter>
-        }
-      >
-        <Stack
-          as="form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void submitRename();
-          }}
-        >
-          <Input
-            label={t("drive.files.nameLabel")}
-            value={renameName}
-            onChange={setRenameName}
-            required
-            autoFocus
-          />
-        </Stack>
-      </SidePanel>
+      />
 
-      <SidePanel
-        open={propsNode !== null}
-        onClose={() => setPropsNode(null)}
-        title={t("drive.props.title")}
-      >
-        <DescriptionList items={propItems} />
-      </SidePanel>
+      <PropertiesPanel node={propsNode} onClose={() => setPropsNode(null)} />
 
       <MovePanel
-        open={movingNodes !== null}
-        moving={movingNodes ?? []}
+        open={bulk.moving !== null}
+        moving={bulk.moving ?? []}
         busy={files.busy}
-        onClose={() => setMovingNodes(null)}
-        onConfirm={(target) => void confirmMove(target)}
+        onClose={bulk.closeMove}
+        onConfirm={(target) => void bulk.confirmMove(target)}
       />
 
       <ConfirmDialog
@@ -831,15 +451,17 @@ export default function Files({ trash = false }: { trash?: boolean }) {
       />
 
       <ConfirmDialog
-        open={confirmPurgeMany}
+        open={bulk.confirmPurge}
         title={t("drive.files.purgeMany.title")}
-        message={t("drive.files.purgeMany.message", { count: String(selectedIds.length) })}
+        message={t("drive.files.purgeMany.message", {
+          count: String(selectedIds.length),
+        })}
         confirmLabel={t("drive.files.action.purge")}
         cancelLabel={t("drive.cancel")}
         destructive
         loading={files.busy}
-        onConfirm={() => void bulkPurge()}
-        onCancel={() => setConfirmPurgeMany(false)}
+        onConfirm={() => void bulk.purgeSelection()}
+        onCancel={() => bulk.setConfirmPurge(false)}
       />
 
       <Toast
@@ -849,13 +471,12 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         onClose={() => files.setToast(null)}
       />
 
-
       <Lightbox
-        open={previewIndex !== null}
-        onClose={() => setPreviewIndex(null)}
-        items={previewItems}
-        index={previewIndex ?? 0}
-        onIndexChange={setPreviewIndex}
+        open={preview.index !== null}
+        onClose={preview.close}
+        items={preview.items}
+        index={preview.index ?? 0}
+        onIndexChange={preview.setIndex}
       />
     </PageContent>
   );

@@ -4,6 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import Files from "./Files";
 import { makeNode, renderWithProviders, useGridView, useListView } from "../test/harness";
 import * as drive from "../api/drive";
+import * as upload from "../api/upload";
+
+vi.mock("../api/upload", () => ({
+  createFileUpload: vi.fn(),
+  estMiseEnPause: () => false,
+}));
 
 vi.mock("../api/drive", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api/drive")>();
@@ -12,7 +18,6 @@ vi.mock("../api/drive", async (importOriginal) => {
     listNodes: vi.fn(),
     listTrash: vi.fn(),
     searchNodes: vi.fn(),
-    uploadFile: vi.fn(),
     createFolder: vi.fn(),
     moveNode: vi.fn(),
     trashNode: vi.fn(),
@@ -25,7 +30,7 @@ vi.mock("../api/drive", async (importOriginal) => {
 const listNodes = vi.mocked(drive.listNodes);
 const listTrash = vi.mocked(drive.listTrash);
 const searchNodes = vi.mocked(drive.searchNodes);
-const uploadFile = vi.mocked(drive.uploadFile);
+const createFileUpload = vi.mocked(upload.createFileUpload);
 
 const folderA = makeNode({ id: "folderA", name: "Dossier A", kind: "folder" });
 const rootImage = makeNode({
@@ -72,11 +77,15 @@ function internalRowTransfer() {
 beforeEach(() => {
   vi.clearAllMocks();
   listNodes.mockImplementation((parentId?: string | null) =>
-    Promise.resolve(parentId === "folderA" ? FOLDER_A_RESPONSE : ROOT_RESPONSE)
+    Promise.resolve(parentId === "folderA" ? FOLDER_A_RESPONSE : ROOT_RESPONSE),
   );
   listTrash.mockResolvedValue([]);
   searchNodes.mockResolvedValue([]);
-  uploadFile.mockResolvedValue(makeNode({ id: "up", name: "up.bin", kind: "file" }));
+  createFileUpload.mockReturnValue({
+    start: vi.fn().mockResolvedValue(undefined),
+    resume: vi.fn().mockResolvedValue(undefined),
+    pause: vi.fn(),
+  });
 });
 
 describe("Navigation fichiers et dossiers", () => {
@@ -103,7 +112,9 @@ describe("Fil d'ariane", () => {
     await screen.findByText("notes.txt");
 
     const breadcrumb = screen.getByRole("navigation", { name: "Fil d'Ariane" });
-    const rootCrumb = within(breadcrumb).getByRole("button", { name: /Racine/ });
+    const rootCrumb = within(breadcrumb).getByRole("button", {
+      name: /Racine/,
+    });
     await userEvent.click(rootCrumb);
 
     expect(await screen.findByText("photo.png")).toBeInTheDocument();
@@ -117,7 +128,9 @@ describe("Sélection multiple", () => {
     renderWithProviders(<Files />);
 
     await screen.findByText("Dossier A");
-    const checkboxes = screen.getAllByRole("checkbox", { name: "Sélectionner le fichier" });
+    const checkboxes = screen.getAllByRole("checkbox", {
+      name: "Sélectionner le fichier",
+    });
     expect(checkboxes).toHaveLength(2);
 
     await userEvent.click(checkboxes[0]);
@@ -133,14 +146,20 @@ describe("Sélection multiple", () => {
     renderWithProviders(<Files />);
 
     await screen.findByText("Dossier A");
-    const checkboxes = screen.getAllByRole("checkbox", { name: "Sélectionner le fichier" });
+    const checkboxes = screen.getAllByRole("checkbox", {
+      name: "Sélectionner le fichier",
+    });
     await userEvent.click(checkboxes[0]);
 
     const bar = document.querySelector("[data-selection-bar]") as HTMLElement;
-    await userEvent.click(within(bar).getByRole("button", { name: /effacer|clear|désélectionner/i }));
+    await userEvent.click(
+      within(bar).getByRole("button", {
+        name: /effacer|clear|désélectionner/i,
+      }),
+    );
 
     await waitFor(() =>
-      expect(document.querySelector("[data-selection-bar]")).not.toBeInTheDocument()
+      expect(document.querySelector("[data-selection-bar]")).not.toBeInTheDocument(),
     );
   });
 });
@@ -168,7 +187,9 @@ describe("Dropzone en vue navigation", () => {
     const dropped = new File(["data"], "import.png", { type: "image/png" });
     fireEvent.drop(nameCell, externalFilesTransfer([dropped]));
 
-    await waitFor(() => expect(uploadFile).toHaveBeenCalledWith(dropped, "root"));
+    await waitFor(() =>
+      expect(createFileUpload).toHaveBeenCalledWith(dropped, "root", expect.anything()),
+    );
   });
 
   it("n'affiche pas l'overlay lors d'un drag interne de ligne", async () => {
@@ -201,11 +222,11 @@ describe("Menu Importer", () => {
 
   it("déclenche l'input fichier standard via l'entrée Fichiers", async () => {
     const clickedWebkitDirectory: boolean[] = [];
-    const clickSpy = vi
-      .spyOn(HTMLInputElement.prototype, "click")
-      .mockImplementation(function (this: HTMLInputElement) {
-        clickedWebkitDirectory.push(this.hasAttribute("webkitdirectory"));
-      });
+    const clickSpy = vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(function (
+      this: HTMLInputElement,
+    ) {
+      clickedWebkitDirectory.push(this.hasAttribute("webkitdirectory"));
+    });
 
     try {
       useGridView();
@@ -224,11 +245,11 @@ describe("Menu Importer", () => {
 
   it("déclenche l'input dossier webkitdirectory via l'entrée Dossier", async () => {
     const clickedWebkitDirectory: boolean[] = [];
-    const clickSpy = vi
-      .spyOn(HTMLInputElement.prototype, "click")
-      .mockImplementation(function (this: HTMLInputElement) {
-        clickedWebkitDirectory.push(this.hasAttribute("webkitdirectory"));
-      });
+    const clickSpy = vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(function (
+      this: HTMLInputElement,
+    ) {
+      clickedWebkitDirectory.push(this.hasAttribute("webkitdirectory"));
+    });
 
     try {
       useGridView();

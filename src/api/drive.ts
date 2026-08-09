@@ -93,12 +93,8 @@ export function emptyTrash() {
   return request<void>("/drive/trash/purge", { method: "POST" });
 }
 
-export function uploadFile(file: File, parentId?: string | null): Promise<Node> {
-  const query = parentId ? `?parent=${encodeURIComponent(parentId)}` : "";
-  const form = new FormData();
-  form.set("file", file, file.name);
-  return request<Node>(`/drive/files${query}`, { method: "POST", body: form });
-}
+// L'envoi de fichiers vit dans `api/upload.ts` : il doit découper les gros
+// fichiers, ce qu'un simple POST multipart ne peut pas faire.
 
 export function listGallery() {
   return request<Node[]>("/drive/gallery");

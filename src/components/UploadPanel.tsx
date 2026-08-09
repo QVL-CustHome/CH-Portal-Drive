@@ -1,13 +1,6 @@
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import {
-  Button,
-  Card,
-  IconActionButton,
-  ProgressBar,
-  Stack,
-  useTranslation,
-} from "canopui";
+import { Button, Card, IconActionButton, ProgressBar, Stack, useTranslation } from "canopui";
 import { useUploadContext } from "../context/upload";
 
 /**
@@ -26,8 +19,11 @@ export default function UploadPanel() {
     return null;
   }
 
-  const traites = queue.done + queue.failed;
-  const pourcentage = Math.round((traites / queue.total) * 100);
+  const traites = queue.done + queue.failed + queue.skipped;
+  // Le fichier en cours compte pour sa fraction transférée : sans cela, un gros
+  // fichier laisse la jauge immobile pendant tout son envoi.
+  const avancement = (traites + (queue.progression ?? 0)) / queue.total;
+  const pourcentage = Math.round(avancement * 100);
   const courant = queue.items.find((item) => item.status === "uploading");
 
   const sousTitre = queue.finished
@@ -84,10 +80,7 @@ export default function UploadPanel() {
             </Stack>
           </Stack>
 
-          <ProgressBar
-            value={pourcentage}
-            color={queue.failed > 0 ? "warning" : "primary"}
-          />
+          <ProgressBar value={pourcentage} color={queue.failed > 0 ? "warning" : "primary"} />
 
           {sousTitre && (
             <Typography variant="body2" color="text.secondary" noWrap title={sousTitre}>
