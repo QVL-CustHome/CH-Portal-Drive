@@ -7,6 +7,7 @@ import {
   Stack,
   useTranslation,
   type ChColumn,
+  type ChIconName,
 } from "canopui";
 import type { MouseEvent } from "react";
 import InlineNameInput from "./InlineNameInput";
@@ -42,7 +43,7 @@ export interface FilesTableProps {
   onDropOn: (targetParentId: string, draggedKey: string) => void;
 }
 
-function iconFor(node: Node): string {
+function iconFor(node: Node): ChIconName {
   if (node.kind === "folder") return "folder";
   return node.is_media && node.media_type === "image" ? "image" : "file";
 }
