@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Files from "./Files";
@@ -74,6 +74,21 @@ function internalRowTransfer() {
   return { dataTransfer: { files: [], types: ["text/plain"] } };
 }
 
+/**
+ * Sélectionne une carte par appui long. La vignette n'a plus de case à cocher :
+ * elle mangeait le coin de l'aperçu.
+ */
+async function selectionnerParAppuiLong(nom: string) {
+  const carte = screen.getByRole("button", { name: nom });
+  fireEvent.pointerDown(carte, { clientX: 0, clientY: 0 });
+  // Horloge réelle : la page enchaîne des chargements asynchrones, et une
+  // horloge simulée les fige au milieu du geste.
+  await act(async () => {
+    await new Promise((resoudre) => setTimeout(resoudre, 550));
+  });
+  fireEvent.pointerUp(carte);
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   listNodes.mockImplementation((parentId?: string | null) =>
@@ -128,13 +143,9 @@ describe("Sélection multiple", () => {
     renderWithProviders(<Files />);
 
     await screen.findByText("Dossier A");
-    const checkboxes = screen.getAllByRole("checkbox", {
-      name: "Sélectionner le fichier",
-    });
-    expect(checkboxes).toHaveLength(2);
 
-    await userEvent.click(checkboxes[0]);
-    await userEvent.click(checkboxes[1]);
+    await selectionnerParAppuiLong("Dossier A");
+    await selectionnerParAppuiLong("photo.png");
 
     const bar = document.querySelector("[data-selection-bar]") as HTMLElement;
     expect(bar).toBeInTheDocument();
@@ -146,10 +157,8 @@ describe("Sélection multiple", () => {
     renderWithProviders(<Files />);
 
     await screen.findByText("Dossier A");
-    const checkboxes = screen.getAllByRole("checkbox", {
-      name: "Sélectionner le fichier",
-    });
-    await userEvent.click(checkboxes[0]);
+
+    await selectionnerParAppuiLong("Dossier A");
 
     const bar = document.querySelector("[data-selection-bar]") as HTMLElement;
     await userEvent.click(

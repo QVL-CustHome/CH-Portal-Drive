@@ -53,6 +53,7 @@ export default function FilesGrid({
     onSelectionChange([...next]);
   };
 
+
   // Un dossier s'ouvre, un fichier affichable se prévisualise, le reste ne
   // réagit pas au clic (il reste téléchargeable par le menu).
   const openHandler = (node: Node): (() => void) | undefined => {

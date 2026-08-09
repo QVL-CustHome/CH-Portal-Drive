@@ -39,7 +39,9 @@ export default function DriveFileCard({
       kind={kind}
       previewUrl={previewUrl}
       metadata={metadata}
-      selectable
+      // Pas de case à cocher : elle mangeait le coin de la vignette. La
+      // sélection se fait à l'appui long, comme sur une ligne de la liste.
+      selectOnLongPress
       selected={selected}
       onSelectedChange={onToggleSelect}
       onOpen={onOpen}
