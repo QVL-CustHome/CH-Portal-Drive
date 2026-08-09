@@ -1,7 +1,11 @@
+import { useEffect } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { Button, Card, IconActionButton, ProgressBar, Stack, useTranslation } from "canopui";
 import { useUploadContext } from "../context/upload";
+
+/** Délai avant effacement automatique une fois l'envoi terminé. */
+const DELAI_EFFACEMENT_MS = 4000;
 
 /**
  * Suivi compact de l'envoi : le fichier en cours et un compteur, pas la liste
@@ -14,6 +18,16 @@ import { useUploadContext } from "../context/upload";
 export default function UploadPanel() {
   const { t } = useTranslation();
   const queue = useUploadContext();
+
+  // Un envoi réussi n'a plus rien à dire : le panneau s'efface de lui-même.
+  // On le garde en revanche tant qu'il reste des échecs, sinon le bouton
+  // « réessayer » disparaîtrait avec lui.
+  const { finished, failed, dismiss } = queue;
+  useEffect(() => {
+    if (!finished || failed > 0) return;
+    const minuterie = window.setTimeout(dismiss, DELAI_EFFACEMENT_MS);
+    return () => window.clearTimeout(minuterie);
+  }, [dismiss, failed, finished]);
 
   if (queue.total === 0) {
     return null;

@@ -54,7 +54,9 @@ export default function Gallery() {
     () =>
       items.map((node) => ({
         src: contentUrlFor(node.id),
-        kind: node.media_type === "video" ? "document" : "image",
+        // Une vidéo se lit dans un lecteur. Rendue comme un « document », elle
+        // partait dans une iframe qui n'affichait qu'un pictogramme de fichier.
+        kind: node.media_type === "video" ? "video" : "image",
         alt: node.name,
         title: node.name,
       })),

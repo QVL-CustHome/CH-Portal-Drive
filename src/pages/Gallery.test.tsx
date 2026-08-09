@@ -61,4 +61,27 @@ describe("Aperçu Lightbox", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
+
+  it("ouvre une vidéo dans un lecteur, pas dans un cadre de document", async () => {
+    const clip = makeNode({
+      id: "v1",
+      name: "sortie.mp4",
+      kind: "file",
+      mime: "video/mp4",
+      is_media: true,
+      media_type: "video",
+      has_thumbnail: true,
+    });
+    listGallery.mockResolvedValue([clip]);
+    renderWithProviders(<Gallery />);
+
+    const tile = await screen.findByRole("button", { name: "sortie.mp4" });
+    await userEvent.click(tile);
+
+    const dialog = await screen.findByRole("dialog");
+    // Rendue en « document », la vidéo partait dans une iframe qui n'affichait
+    // qu'un pictogramme de fichier.
+    expect(dialog.querySelector("video")).not.toBeNull();
+    expect(dialog.querySelector("iframe")).toBeNull();
+  });
 });
