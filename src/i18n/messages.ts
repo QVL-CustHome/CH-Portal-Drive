@@ -1,8 +1,8 @@
-import type { ChLocale, ChLocaleMessages } from "canopui";
+import type { CanopLocale, CanopLocaleMessages } from "canopui";
 
-export const defaultLocale: ChLocale = "fr";
+export const defaultLocale: CanopLocale = "fr";
 
-export const messages: ChLocaleMessages = {
+export const messages: CanopLocaleMessages = {
   fr: {
     "drive.brand": "Drive",
     "drive.loading": "Chargement",

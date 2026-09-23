@@ -1,6 +1,6 @@
-import { ApiError, createApiClient } from "canopui";
+import { CanopApiError, createApiClient } from "canopui";
 
 const client = createApiClient({ basePath: "/api", withRefresh: true });
 
 export const request = client.request;
-export { ApiError };
+export { CanopApiError as ApiError };

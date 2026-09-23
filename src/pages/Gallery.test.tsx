@@ -85,3 +85,15 @@ describe("Aperçu Lightbox", () => {
     expect(dialog.querySelector("iframe")).toBeNull();
   });
 });
+
+describe("Chargement", () => {
+  it("nomme le spinner Chargement de la galerie", () => {
+    listGallery.mockReturnValue(new Promise(() => {}));
+    renderWithProviders(<Gallery />);
+
+    expect(screen.getByLabelText("Chargement de la galerie")).toHaveAttribute(
+      "aria-label",
+      "Chargement de la galerie",
+    );
+  });
+});

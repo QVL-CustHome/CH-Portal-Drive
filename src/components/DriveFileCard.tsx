@@ -1,4 +1,4 @@
-import { FileCard, Icon, MenuItem, type ChFileCardKind } from "canopui";
+import { FileCard, Icon, MenuItem, type CanopFileCardKind } from "canopui";
 import { thumbnailUrl, type Node } from "../api/drive";
 import type { ContextMenuItem } from "./ContextMenu";
 
@@ -12,7 +12,7 @@ interface DriveFileCardProps {
   menuLabel: string;
 }
 
-function kindFor(node: Node): ChFileCardKind {
+function kindFor(node: Node): CanopFileCardKind {
   if (node.kind === "folder") return "folder";
   if (node.is_media && node.media_type === "image") return "image";
   return "file";
@@ -43,7 +43,7 @@ export default function DriveFileCard({
       // sélection se fait à l'appui long, comme sur une ligne de la liste.
       selectOnLongPress
       selected={selected}
-      onSelectedChange={onToggleSelect}
+      onSelectionChange={onToggleSelect}
       onOpen={onOpen}
       menuLabel={menuLabel}
       menu={menuItems.map((item) => (

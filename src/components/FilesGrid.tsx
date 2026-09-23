@@ -90,7 +90,7 @@ export default function FilesGrid({
         </Card>
       )}
       {items.map((node) => (
-        <Box key={node.id} data-rowkey={node.id} minWidth={0}>
+        <Box key={node.id} data-rowkey={node.id} sx={{ minWidth: 0 }}>
           <DriveFileCard
             node={node}
             selected={selectedSet.has(node.id)}

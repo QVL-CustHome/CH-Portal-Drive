@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, Outlet } from "react-router-dom";
-import { PageScaffold, useTranslation, type ChNavbarItem } from "canopui";
+import { PageScaffold, useTranslation, type CanopNavbarItem } from "canopui";
 import { useCurrentUser } from "../context/current-user";
 import { StorageProvider } from "../context/StorageProvider";
 import { UploadProvider } from "../context/UploadProvider";
@@ -16,12 +16,12 @@ export default function DriveLayout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const items: ChNavbarItem[] = [
+  const items: CanopNavbarItem[] = [
     { label: t("drive.nav.files"), href: "/files", icon: "folder" },
     { label: t("drive.nav.gallery"), href: "/gallery", icon: "image" },
     { label: t("drive.nav.trash"), href: "/trash", icon: "trash" },
     ...(isDriveAdmin(me)
-      ? [{ label: t("drive.nav.admin"), href: "/admin", icon: "shield" } as ChNavbarItem]
+      ? [{ label: t("drive.nav.admin"), href: "/admin", icon: "shield" } as CanopNavbarItem]
       : []),
   ];
 

@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { ChI18nProvider, ChThemeProvider } from "canopui";
+import { CanopI18nProvider, CanopThemeProvider } from "canopui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import UploadPanel from "./UploadPanel";
 import { UploadContext, type UploadContextValue } from "../context/upload";
@@ -40,13 +40,13 @@ function queue(overrides: Partial<UploadContextValue> = {}): UploadContextValue 
 
 function monter(value: UploadContextValue) {
   return render(
-    <ChI18nProvider locale={defaultLocale} messages={messages} storageKey={null}>
-      <ChThemeProvider defaultMode="light">
+    <CanopI18nProvider locale={defaultLocale} messages={messages} storageKey={null}>
+      <CanopThemeProvider defaultMode="light">
         <UploadContext.Provider value={value}>
           <UploadPanel />
         </UploadContext.Provider>
-      </ChThemeProvider>
-    </ChI18nProvider>
+      </CanopThemeProvider>
+    </CanopI18nProvider>
   );
 }
 
@@ -84,5 +84,29 @@ describe("UploadPanel", () => {
 
     vi.advanceTimersByTime(20000);
     expect(value.dismiss).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [false, "Mettre en pause"],
+    [true, "Reprendre"],
+  ])("nomme le bouton de pause selon l'état (en pause : %s)", (paused, label) => {
+    monter(
+      queue({
+        finished: false,
+        running: !paused,
+        paused,
+        done: 0,
+        remaining: 1,
+        items: [{ ...file(), status: paused ? "queued" : "uploading" }],
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: label })).toHaveAttribute("aria-label", label);
+  });
+
+  it("nomme le bouton de fermeture Fermer une fois l'envoi terminé", () => {
+    monter(queue({ done: 0, failed: 1, items: [{ ...file(), status: "error" }] }));
+
+    expect(screen.getByRole("button", { name: "Fermer" })).toHaveAttribute("aria-label", "Fermer");
   });
 });

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiErrorMessage, useTranslation, type ChToastSeverity } from "canopui";
+import { apiErrorMessage, useTranslation, type CanopToastSeverity } from "canopui";
 import { ApiError } from "../api/client";
 import { listDriveUsers, recomputeUser, setUserQuota, type DriveAdminUser } from "../api/drive";
 
 export interface AdminToast {
-  severity: ChToastSeverity;
+  severity: CanopToastSeverity;
   message: string;
 }
 

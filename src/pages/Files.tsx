@@ -16,11 +16,11 @@ import {
   Toast,
   Toolbar,
   useTranslation,
-  type ChBreadcrumbItem,
-  type ChSelectionAction,
-  type ChToolbarAction,
-  type ChToolbarSearchConfig,
-  type ChToolbarViewConfig,
+  type CanopBreadcrumbItem,
+  type CanopSelectionAction,
+  type CanopToolbarAction,
+  type CanopToolbarSearchConfig,
+  type CanopToolbarViewConfig,
 } from "canopui";
 import ContextMenu from "../components/ContextMenu";
 import FilesGrid from "../components/FilesGrid";
@@ -176,7 +176,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
   };
   const rows = adding && isBrowse ? [draftNode, ...files.items] : files.items;
 
-  const search: ChToolbarSearchConfig | undefined = !isTrash
+  const search: CanopToolbarSearchConfig | undefined = !isTrash
     ? {
         value: searchInput,
         onChange: setSearchInput,
@@ -187,9 +187,9 @@ export default function Files({ trash = false }: { trash?: boolean }) {
       }
     : undefined;
 
-  const view: ChToolbarViewConfig = { value: viewMode, onChange: setViewMode };
+  const view: CanopToolbarViewConfig = { value: viewMode, onChange: setViewMode };
 
-  const toolbarActions: ChToolbarAction[] = isBrowse
+  const toolbarActions: CanopToolbarAction[] = isBrowse
     ? [
         {
           id: "add",
@@ -236,7 +236,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
   const selectableIds = files.items.map((n) => n.id).filter((id) => id !== DRAFT_ID);
   const allSelected = selectableIds.length > 0 && selectedIds.length === selectableIds.length;
 
-  const selectAllAction: ChSelectionAction = {
+  const selectAllAction: CanopSelectionAction = {
     id: "select-all",
     label: allSelected ? t("drive.files.action.selectNone") : t("drive.files.action.selectAll"),
     icon: "check",
@@ -244,7 +244,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
     disabled: selectableIds.length === 0,
   };
 
-  const selectionActions: ChSelectionAction[] = isTrash
+  const selectionActions: CanopSelectionAction[] = isTrash
     ? [
         selectAllAction,
         {
@@ -282,7 +282,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         },
       ];
 
-  const breadcrumbItems: ChBreadcrumbItem[] = files.ancestors.map((crumb, index) => ({
+  const breadcrumbItems: CanopBreadcrumbItem[] = files.ancestors.map((crumb, index) => ({
     id: crumb.id,
     label: index === 0 ? t("drive.files.root") : crumb.name,
     icon: index === 0 ? "home" : undefined,
@@ -346,7 +346,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         {isBrowse ? (
           breadcrumbItems.length > 0 && <Breadcrumb items={breadcrumbItems} />
         ) : (
-          <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+          <Typography variant="subtitle1" color="text.primary" sx={{ fontWeight: 600 }}>
             {viewTitle}
           </Typography>
         )}
@@ -402,7 +402,7 @@ export default function Files({ trash = false }: { trash?: boolean }) {
         open={nodeImport.anchor !== null}
         anchorEl={nodeImport.anchor}
         onClose={nodeImport.closeMenu}
-        label={t("drive.files.action.upload")}
+        ariaLabel={t("drive.files.action.upload")}
       >
         <MenuItem
           label={t("drive.files.import.files")}

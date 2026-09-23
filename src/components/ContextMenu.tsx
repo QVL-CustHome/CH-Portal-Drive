@@ -1,7 +1,7 @@
-import { Icon, Menu, MenuItem, type ChIconName } from "canopui";
+import { Icon, Menu, MenuItem, type CanopIconName } from "canopui";
 
 export interface ContextMenuItem {
-  icon: ChIconName;
+  icon: CanopIconName;
   label: string;
   danger?: boolean;
   onClick: () => void;

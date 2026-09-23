@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { useUploadQueue } from "./useUploadQueue";
 import * as drive from "../api/drive";
 import * as upload from "../api/upload";
+import { ApiError } from "../api/client";
 
 vi.mock("../api/drive", () => ({
   createFolder: vi.fn(),
@@ -131,6 +132,47 @@ describe("useUploadQueue", () => {
     expect(result.current.done).toBe(1);
     expect(envoyer).toHaveBeenCalledTimes(1);
     expect(envoyer).toHaveBeenCalledWith(expect.objectContaining({ name: "b.txt" }), "root");
+  });
+
+  it("réutilise le dossier déjà présent quand sa création renvoie un ApiError 409", async () => {
+    createFolder.mockRejectedValue(new ApiError(409, "existe déjà"));
+    listNodes.mockImplementation((parent) =>
+      Promise.resolve(
+        (parent === "root"
+          ? { items: [{ id: "existant", name: "photos", kind: "folder" }] }
+          : { items: [] }) as never,
+      ),
+    );
+    const { result } = monter();
+
+    act(() => result.current.enqueue([fichier("a.jpg", "photos/a.jpg")], "root"));
+
+    await waitFor(() => expect(result.current.finished).toBe(true));
+    expect(result.current.done).toBe(1);
+    expect(result.current.failed).toBe(0);
+    expect(envoyer).toHaveBeenCalledWith(expect.objectContaining({ name: "a.jpg" }), "existant");
+  });
+
+  it("classe en échec un dossier dont la création échoue sans ApiError 409", async () => {
+    createFolder.mockRejectedValue(new ApiError(500, "panne"));
+    const { result } = monter();
+
+    act(() => result.current.enqueue([fichier("a.jpg", "photos/a.jpg")], "root"));
+
+    await waitFor(() => expect(result.current.finished).toBe(true));
+    expect(result.current.items[0]!.status).toBe("error");
+    expect(envoyer).not.toHaveBeenCalled();
+  });
+
+  it("classe en échec un fichier refusé par un ApiError autre que 409", async () => {
+    envoyer.mockRejectedValue(new ApiError(500, "panne"));
+    const { result } = monter();
+
+    act(() => result.current.enqueue([fichier("a.txt")], "root"));
+
+    await waitFor(() => expect(result.current.finished).toBe(true));
+    expect(result.current.items[0]!.status).toBe("error");
+    expect(result.current.skipped).toBe(0);
   });
 
   it("met en pause et ne reprend qu'à la demande", async () => {

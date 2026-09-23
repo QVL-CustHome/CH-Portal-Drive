@@ -6,6 +6,6 @@
 
 body {
   margin: 0;
-  background: var(--ch-palette-background-default);
-  color: var(--ch-palette-text-primary);
+  background: var(--canop-palette-background-default);
+  color: var(--canop-palette-text-primary);
 }

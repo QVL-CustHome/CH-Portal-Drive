@@ -10,7 +10,7 @@ import {
   Spinner,
   Stack,
   useTranslation,
-  type ChLightboxItem,
+  type CanopLightboxItem,
 } from "canopui";
 import GalleryTile from "../components/GalleryTile";
 import { contentUrlFor, type Node } from "../api/drive";
@@ -50,7 +50,7 @@ export default function Gallery() {
 
   const groups = useMemo(() => groupByMonth(items, locale), [items, locale]);
 
-  const lightboxItems = useMemo<ChLightboxItem[]>(
+  const lightboxItems = useMemo<CanopLightboxItem[]>(
     () =>
       items.map((node) => ({
         src: contentUrlFor(node.id),
@@ -69,7 +69,7 @@ export default function Gallery() {
         {loadError && <Feedback severity="error">{loadError}</Feedback>}
 
         {loading ? (
-          <Spinner label={t("drive.gallery.loading")} />
+          <Spinner ariaLabel={t("drive.gallery.loading")} />
         ) : items.length === 0 ? (
           <EmptyState
             surface="plain"
@@ -79,7 +79,7 @@ export default function Gallery() {
         ) : (
           groups.map((group) => (
             <Stack key={group.key} gap="sm">
-              <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+              <Typography variant="subtitle1" color="text.primary" sx={{ fontWeight: 600 }}>
                 {group.label}
               </Typography>
               <CardGrid minItemWidth="8rem" gap="sm">

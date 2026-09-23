@@ -37,14 +37,14 @@ export default function InlineNameInput({
         minWidth: "8rem",
         paddingX: "0.5rem",
         paddingY: "0.3rem",
-        borderRadius: "var(--ch-radius-sm)",
-        border: "0.0625rem solid var(--ch-palette-primary-main)",
+        borderRadius: "var(--canop-radius-sm)",
+        border: "0.0625rem solid var(--canop-palette-primary-main)",
         color: "text.primary",
         backgroundColor: "background.paper",
         font: "inherit",
         "& .MuiInputBase-input": { padding: 0 },
         "&.Mui-focused": {
-          boxShadow: "0 0 0 0.125rem var(--ch-palette-primary-main)",
+          boxShadow: "0 0 0 0.125rem var(--canop-palette-primary-main)",
         },
       }}
     />

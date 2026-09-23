@@ -1,12 +1,12 @@
 import {
   createUploader,
   fileUploadSource,
-  type OpenUploadBody,
-  type PutChunkResponse,
-  type UploadBytes,
-  type UploadNode,
-  type UploadSessionResponse,
-  type UploadTransport,
+  type CanopOpenUploadBody,
+  type CanopPutChunkResponse,
+  type CanopUploadBytes,
+  type CanopUploadNode,
+  type CanopUploadSessionResponse,
+  type CanopUploadTransport,
 } from "canopui";
 import { request } from "./client";
 
@@ -38,25 +38,30 @@ const SEUIL_ENVOI_DIRECT = TAILLE_CHUNK;
  * envoi de plusieurs gigaoctets, dont la durée peut dépasser la validité du
  * jeton.
  */
-export const driveUploadTransport: UploadTransport = {
-  open: (body: OpenUploadBody) =>
-    request<UploadSessionResponse>("/drive/uploads", {
+export const driveUploadTransport: CanopUploadTransport = {
+  open: (body: CanopOpenUploadBody) =>
+    request<CanopUploadSessionResponse>("/drive/uploads", {
       method: "POST",
       body: JSON.stringify(body),
     }),
 
-  putChunk: (sessionId: string, chunkIndex: number, bytes: UploadBytes, signal?: AbortSignal) =>
-    request<PutChunkResponse>(`/drive/uploads/${sessionId}/chunks/${chunkIndex}`, {
+  putChunk: (
+    sessionId: string,
+    chunkIndex: number,
+    bytes: CanopUploadBytes,
+    signal?: AbortSignal,
+  ) =>
+    request<CanopPutChunkResponse>(`/drive/uploads/${sessionId}/chunks/${chunkIndex}`, {
       method: "PUT",
       headers: { "Content-Type": "application/octet-stream" },
       body: bytes as BodyInit,
       signal,
     }),
 
-  status: (sessionId: string) => request<UploadSessionResponse>(`/drive/uploads/${sessionId}`),
+  status: (sessionId: string) => request<CanopUploadSessionResponse>(`/drive/uploads/${sessionId}`),
 
   complete: (sessionId: string) =>
-    request<UploadNode>(`/drive/uploads/${sessionId}/complete`, {
+    request<CanopUploadNode>(`/drive/uploads/${sessionId}/complete`, {
       method: "POST",
     }),
 
@@ -64,7 +69,7 @@ export const driveUploadTransport: UploadTransport = {
 
   uploadSingleShot: (
     fileName: string,
-    bytes: UploadBytes,
+    bytes: CanopUploadBytes,
     mime: string | undefined,
     parentId: string | undefined,
     signal?: AbortSignal,
@@ -73,7 +78,7 @@ export const driveUploadTransport: UploadTransport = {
     form.set("file", new Blob([bytes], { type: mime ?? "application/octet-stream" }), fileName);
     // L'API lit le dossier parent en paramètre de requête, pas dans le formulaire.
     const query = parentId ? `?parent=${encodeURIComponent(parentId)}` : "";
-    return request<UploadNode>(`/drive/files${query}`, {
+    return request<CanopUploadNode>(`/drive/files${query}`, {
       method: "POST",
       body: form,
       signal,

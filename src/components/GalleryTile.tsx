@@ -20,10 +20,10 @@ export default function GalleryTile({ node, onOpen }: GalleryTileProps) {
         position: "relative",
         width: "100%",
         aspectRatio: "1 / 1",
-        borderRadius: "var(--ch-radius-md)",
+        borderRadius: "var(--canop-radius-md)",
         overflow: "hidden",
         backgroundColor: "surface.sunken",
-        transition: "transform var(--ch-motion-duration-fast) var(--ch-motion-ease-standard)",
+        transition: "transform var(--canop-motion-duration-fast) var(--canop-motion-ease-standard)",
         "&:hover": { transform: "scale(1.02)" },
         "&:focus-visible": {
           outline: "0.125rem solid",
@@ -42,30 +42,34 @@ export default function GalleryTile({ node, onOpen }: GalleryTileProps) {
         />
       ) : (
         <Box
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          width="100%"
-          height="100%"
-          color="text.secondary"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "100%",
+            height: "100%",
+            color: "text.secondary",
+          }}
         >
           <Icon name={isVideo ? "image" : "file"} size="lg" color="inherit" />
         </Box>
       )}
       {isVideo && (
         <Box
-          position="absolute"
-          right="0.4rem"
-          bottom="0.4rem"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          width="1.75rem"
-          height="1.75rem"
-          borderRadius="var(--ch-radius-pill)"
-          border="0.0625rem solid"
-          borderColor="divider"
-          sx={{ backgroundColor: "surface.overlay" }}
+          sx={{
+            position: "absolute",
+            right: "0.4rem",
+            bottom: "0.4rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "1.75rem",
+            height: "1.75rem",
+            borderRadius: "var(--canop-radius-pill)",
+            border: "0.0625rem solid",
+            borderColor: "divider",
+            backgroundColor: "surface.overlay",
+          }}
         >
           <Icon name="caretRight" variant="solid" size="xs" color="primary" />
         </Box>

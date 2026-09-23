@@ -6,8 +6,8 @@ import {
   IconActionButton,
   Stack,
   useTranslation,
-  type ChColumn,
-  type ChIconName,
+  type CanopColumn,
+  type CanopIconName,
 } from "canopui";
 import type { MouseEvent } from "react";
 import InlineNameInput from "./InlineNameInput";
@@ -43,7 +43,7 @@ export interface FilesTableProps {
   onDropOn: (targetParentId: string, draggedKey: string) => void;
 }
 
-function iconFor(node: Node): ChIconName {
+function iconFor(node: Node): CanopIconName {
   if (node.kind === "folder") return "folder";
   return node.is_media && node.media_type === "image" ? "image" : "file";
 }
@@ -75,7 +75,7 @@ export default function FilesTable({
 }: FilesTableProps) {
   const { t, locale } = useTranslation();
 
-  const columns: ChColumn<Node>[] = [
+  const columns: CanopColumn<Node>[] = [
     {
       key: "name",
       header: t("drive.files.col.name"),
@@ -136,7 +136,7 @@ export default function FilesTable({
           <IconActionButton
             icon="more"
             variant="secondary"
-            aria-label={t("drive.files.action.more")}
+            ariaLabel={t("drive.files.action.more")}
             onClick={(e) => {
               e.stopPropagation();
               openMenu(n, e);
@@ -152,12 +152,12 @@ export default function FilesTable({
         <RowActions>
           <IconActionButton
             icon="check"
-            aria-label={t("drive.files.action.restore")}
+            ariaLabel={t("drive.files.action.restore")}
             onClick={() => onRestore(n.id)}
             disabled={busy}
           />
           <DeleteButton
-            aria-label={t("drive.files.action.purge")}
+            ariaLabel={t("drive.files.action.purge")}
             confirmTitle={`${t("drive.files.action.purge")} ?`}
             confirmMessage={t("drive.files.purge.message", { name: n.name })}
             confirmLabel={t("drive.files.action.purge")}
@@ -175,13 +175,13 @@ export default function FilesTable({
           <IconActionButton
             icon="download"
             variant="secondary"
-            aria-label={t("drive.files.action.download")}
+            ariaLabel={t("drive.files.action.download")}
             onClick={() => onDownload(n)}
           />
         )}
         {isBrowse && (
           <EditButton
-            aria-label={t("drive.files.action.rename")}
+            ariaLabel={t("drive.files.action.rename")}
             onClick={() => onRename(n)}
             disabled={busy}
           />
@@ -189,7 +189,7 @@ export default function FilesTable({
         <IconActionButton
           icon="trash"
           variant="danger"
-          aria-label={t("drive.files.action.trash")}
+          ariaLabel={t("drive.files.action.trash")}
           onClick={() => onTrash(n.id)}
           disabled={busy}
         />
@@ -206,7 +206,7 @@ export default function FilesTable({
       emptyMessage={emptyMessage}
       fixedLayout
       stickyHeader
-      animateRows
+      animated
       enableKeyboardNav
       actionsWidth="16%"
       selectable

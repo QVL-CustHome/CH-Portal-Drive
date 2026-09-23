@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { createChTheme } from "canopui";
+import { createCanopTheme } from "canopui";
 
 export const MOBILE_BREAKPOINT = 768;
 
-const mobileMediaQuery = createChTheme()
+const mobileMediaQuery = createCanopTheme()
   .breakpoints.down(MOBILE_BREAKPOINT)
   .replace("@media ", "");
 

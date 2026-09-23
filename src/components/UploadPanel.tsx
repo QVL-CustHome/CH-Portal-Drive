@@ -80,14 +80,14 @@ export default function UploadPanel() {
               {!queue.finished && (
                 <IconActionButton
                   icon={queue.paused ? "play" : "pause"}
-                  aria-label={t(queue.paused ? "drive.upload.resume" : "drive.upload.pause")}
+                  ariaLabel={t(queue.paused ? "drive.upload.resume" : "drive.upload.pause")}
                   onClick={queue.paused ? queue.resume : queue.pause}
                 />
               )}
               {queue.finished && (
                 <IconActionButton
                   icon="close"
-                  aria-label={t("drive.upload.close")}
+                  ariaLabel={t("drive.upload.close")}
                   onClick={queue.dismiss}
                 />
               )}

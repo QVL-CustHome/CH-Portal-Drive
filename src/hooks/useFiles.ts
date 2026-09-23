@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiErrorMessage, useTranslation, type ChToastSeverity } from "canopui";
+import { apiErrorMessage, useTranslation, type CanopToastSeverity } from "canopui";
 import { ApiError } from "../api/client";
 import { useStorageContext } from "../context/storage";
 import {
@@ -18,7 +18,7 @@ import {
 } from "../api/drive";
 
 export interface FilesToast {
-  severity: ChToastSeverity;
+  severity: CanopToastSeverity;
   message: string;
 }
 

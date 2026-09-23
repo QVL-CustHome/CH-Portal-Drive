@@ -10,7 +10,7 @@ import {
   Spinner,
   Stack,
   useTranslation,
-  type ChBreadcrumbItem,
+  type CanopBreadcrumbItem,
 } from "canopui";
 import { listNodes, type Crumb, type Node } from "../api/drive";
 import PanelFooter from "./PanelFooter";
@@ -59,7 +59,7 @@ export default function MovePanel({ open, moving, busy, onClose, onConfirm }: Mo
 
   const target = currentId ?? rootId;
 
-  const pathItems: ChBreadcrumbItem[] = [
+  const pathItems: CanopBreadcrumbItem[] = [
     { id: "__root__", label: t("drive.files.root"), icon: "home", onClick: () => setCurrentId(null) },
     ...ancestors.slice(1).map((crumb) => ({
       id: crumb.id,
@@ -85,7 +85,7 @@ export default function MovePanel({ open, moving, busy, onClose, onConfirm }: Mo
       }
     >
       <Stack gap="md">
-        <Breadcrumb items={pathItems} label={t("drive.files.move.title")} />
+        <Breadcrumb items={pathItems} ariaLabel={t("drive.files.move.title")} />
 
         {loading ? (
           <Spinner />
@@ -106,16 +106,19 @@ export default function MovePanel({ open, moving, busy, onClose, onConfirm }: Mo
                   width: "100%",
                   paddingX: "0.7rem",
                   paddingY: "0.6rem",
-                  borderRadius: "var(--ch-radius-sm)",
+                  borderRadius: "var(--canop-radius-sm)",
                   color: "text.primary",
                   transition:
-                    "background-color var(--ch-motion-duration-fast) var(--ch-motion-ease-standard)",
+                    "background-color var(--canop-motion-duration-fast) var(--canop-motion-ease-standard)",
                   "&:hover": { backgroundColor: "surface.sunken" },
                   "&.Mui-disabled": { opacity: 0.45 },
                 }}
               >
                 <Icon name="folder" size="sm" color="secondary" />
-                <Box component="span" minWidth={0} sx={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+                <Box
+                  component="span"
+                  sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
+                >
                   {folder.name}
                 </Box>
               </ButtonBase>

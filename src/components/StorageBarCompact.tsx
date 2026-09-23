@@ -10,13 +10,18 @@ interface StorageBarCompactProps {
 export default function StorageBarCompact({ title, percent }: StorageBarCompactProps) {
   return (
     <Stack direction="row" alignItems="center" gap="sm">
-      <Typography variant="caption" fontWeight={600} color="primary.contrastText" noWrap>
+      <Typography
+        variant="caption"
+        color="primary.contrastText"
+        noWrap
+        sx={{ fontWeight: 600 }}
+      >
         {title}
       </Typography>
-      <Box flex={1} minWidth={0}>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
         <ProgressBar value={percent} />
       </Box>
-      <Typography variant="caption" fontWeight={600} color="primary.contrastText">
+      <Typography variant="caption" color="primary.contrastText" sx={{ fontWeight: 600 }}>
         {percent}%
       </Typography>
     </Stack>

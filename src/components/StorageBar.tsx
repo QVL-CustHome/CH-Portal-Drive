@@ -9,7 +9,7 @@ export default function StorageBar() {
   const { loading, hasError, percent, usedBytes, quotaBytes, isCompact } = useStorageBar();
 
   if (loading) {
-    return <Spinner label={t("drive.storage.loading")} />;
+    return <Spinner ariaLabel={t("drive.storage.loading")} />;
   }
   if (hasError) {
     return <Feedback severity="error">{t("drive.storage.loadError")}</Feedback>;

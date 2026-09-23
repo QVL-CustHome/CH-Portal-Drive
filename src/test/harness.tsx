@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { ChI18nProvider, ChThemeProvider } from "canopui";
+import { CanopI18nProvider, CanopThemeProvider } from "canopui";
 import { defaultLocale, messages } from "../i18n/messages";
 import { StorageContext, type StorageContextValue } from "../context/storage";
 import { UploadProvider } from "../context/UploadProvider";
@@ -14,17 +14,19 @@ export const storageStub: StorageContextValue = {
   reload: () => {},
 };
 
-export function renderWithProviders(ui: ReactElement) {
+type ThemeMode = "light" | "dark";
+
+export function renderWithProviders(ui: ReactElement, mode: ThemeMode = "light") {
   return render(
-    <ChI18nProvider locale={defaultLocale} messages={messages} storageKey={null}>
-      <ChThemeProvider defaultMode="light">
+    <CanopI18nProvider locale={defaultLocale} messages={messages} storageKey={null}>
+      <CanopThemeProvider defaultMode={mode} storageKey={null}>
         <MemoryRouter>
           <StorageContext.Provider value={storageStub}>
             <UploadProvider>{ui}</UploadProvider>
           </StorageContext.Provider>
         </MemoryRouter>
-      </ChThemeProvider>
-    </ChI18nProvider>
+      </CanopThemeProvider>
+    </CanopI18nProvider>
   );
 }
 

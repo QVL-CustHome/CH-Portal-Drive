@@ -1,6 +1,6 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Files from "./Files";
 import { makeNode, renderWithProviders, useGridView, useListView } from "../test/harness";
 import * as drive from "../api/drive";
@@ -315,5 +315,75 @@ describe("Absence de Dropzone hors navigation", () => {
     fireEvent.dragEnter(result, externalFilesTransfer());
 
     expect(screen.queryByText(DROP_OVERLAY)).not.toBeInTheDocument();
+  });
+});
+
+describe("Noms accessibles des actions", () => {
+  function expectAriaLabel(label: string) {
+    expect(document.querySelectorAll(`[aria-label="${label}"]`).length).toBeGreaterThan(0);
+  }
+
+  function simulerMobile() {
+    vi.spyOn(window, "matchMedia").mockImplementation(
+      (query: string) =>
+        ({
+          matches: query.includes("max-width"),
+          media: query,
+          onchange: null,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          addListener: () => {},
+          removeListener: () => {},
+          dispatchEvent: () => false,
+        }) as MediaQueryList,
+    );
+  }
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it("expose Plus d'actions sur les lignes en vue liste mobile", async () => {
+    simulerMobile();
+    useListView();
+    renderWithProviders(<Files />);
+    await screen.findByText("photo.png");
+
+    expectAriaLabel("Plus d'actions");
+    expect(screen.getAllByRole("button", { name: "Plus d'actions" }).length).toBeGreaterThan(0);
+  });
+
+  it("expose les actions de ligne en vue liste bureau", async () => {
+    useListView();
+    renderWithProviders(<Files />);
+    await screen.findByText("photo.png");
+
+    for (const label of ["Télécharger", "Renommer", "Mettre à la corbeille"]) {
+      expectAriaLabel(label);
+      expect(screen.getAllByRole("button", { name: label }).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("expose Restaurer et Supprimer définitivement en vue corbeille", async () => {
+    listTrash.mockResolvedValue([{ ...rootImage, trashed: true }]);
+    useListView();
+    renderWithProviders(<Files trash />);
+    await screen.findByText("photo.png");
+
+    for (const label of ["Restaurer", "Supprimer définitivement"]) {
+      expectAriaLabel(label);
+      expect(screen.getAllByRole("button", { name: label }).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("nomme le menu d'import Importer", async () => {
+    useGridView();
+    renderWithProviders(<Files />);
+    await screen.findByText("Dossier A");
+
+    await userEvent.click(screen.getByRole("button", { name: "Importer" }));
+
+    expect(await screen.findByRole("menu", { name: "Importer" })).toHaveAttribute(
+      "aria-label",
+      "Importer",
+    );
   });
 });

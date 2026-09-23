@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import type { ChLightboxItem } from "canopui";
+import type { CanopLightboxItem } from "canopui";
 import { contentUrlFor, getPreviewInfo, previewPageUrl, type Node } from "../api/drive";
 import { isGalleryMedia, previewKind } from "../lib/preview";
 
@@ -12,7 +12,7 @@ interface Params {
 }
 
 export interface FilePreview {
-  items: ChLightboxItem[];
+  items: CanopLightboxItem[];
   index: number | null;
   open: (node: Node) => Promise<void>;
   setIndex: (index: number) => void;
@@ -33,7 +33,7 @@ export interface FilePreview {
  */
 export function useFilePreview({ items, enabled, t, onUnavailable }: Params): FilePreview {
   const [index, setIndex] = useState<number | null>(null);
-  const [lightboxItems, setLightboxItems] = useState<ChLightboxItem[]>([]);
+  const [lightboxItems, setLightboxItems] = useState<CanopLightboxItem[]>([]);
 
   const medias = useMemo(() => (enabled ? items.filter(isGalleryMedia) : []), [items, enabled]);
 

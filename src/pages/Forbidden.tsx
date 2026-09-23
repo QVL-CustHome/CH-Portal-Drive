@@ -7,12 +7,7 @@ export default function Forbidden() {
   const { t } = useTranslation();
 
   return (
-    <Box
-      maxWidth="30rem"
-      marginX="auto"
-      marginTop="15vh"
-      padding="1.5rem"
-    >
+    <Box sx={{ maxWidth: "30rem", marginX: "auto", marginTop: "15vh", padding: "1.5rem" }}>
       <Stack gap="lg">
         <Heading level={1} size={3}>
           {t("drive.forbidden.title")}

@@ -1,4 +1,4 @@
-import { ChI18nProvider, ChThemeProvider } from "canopui";
+import { CanopI18nProvider, CanopThemeProvider } from "canopui";
 import "canopui/styles.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -9,12 +9,12 @@ import "./styles.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ChI18nProvider locale={defaultLocale} messages={messages}>
-      <ChThemeProvider defaultMode="system">
+    <CanopI18nProvider locale={defaultLocale} messages={messages}>
+      <CanopThemeProvider defaultMode="system">
         <BrowserRouter>
           <App />
         </BrowserRouter>
-      </ChThemeProvider>
-    </ChI18nProvider>
+      </CanopThemeProvider>
+    </CanopI18nProvider>
   </StrictMode>
 );

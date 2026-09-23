@@ -12,7 +12,7 @@ import {
   Stack,
   Toast,
   useTranslation,
-  type ChColumn,
+  type CanopColumn,
 } from "canopui";
 import { type DriveAdminUser } from "../api/drive";
 import { useDriveAdmin } from "../hooks/useDriveAdmin";
@@ -41,7 +41,7 @@ export default function Admin() {
     if (ok) setEditing(null);
   };
 
-  const columns: ChColumn<DriveAdminUser>[] = [
+  const columns: CanopColumn<DriveAdminUser>[] = [
     {
       key: "name",
       header: t("drive.admin.col.user"),
@@ -50,7 +50,7 @@ export default function Admin() {
       sortValue: (u) => (u.name ?? u.user_id).toLowerCase(),
       render: (u) => (
         <Stack gap="xs">
-          <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
+          <Typography variant="body2" color="text.primary" noWrap sx={{ fontWeight: 600 }}>
             {u.name ?? u.user_id}
           </Typography>
           {u.email && (
@@ -96,7 +96,7 @@ export default function Admin() {
           fixedLayout
           stickyHeader
           maxHeight="32rem"
-          animateRows
+          animated
           enableKeyboardNav
           actionsWidth="14%"
           actions={(u) => (
@@ -104,13 +104,13 @@ export default function Admin() {
               <IconActionButton
                 icon="refresh"
                 variant="secondary"
-                aria-label={t("drive.admin.action.recompute")}
+                ariaLabel={t("drive.admin.action.recompute")}
                 onClick={() => void admin.recompute(u.user_id)}
                 disabled={admin.busy}
               />
               <IconActionButton
                 icon="pencil"
-                aria-label={t("drive.admin.action.editQuota")}
+                ariaLabel={t("drive.admin.action.editQuota")}
                 onClick={() => openEdit(u)}
                 disabled={admin.busy}
               />
