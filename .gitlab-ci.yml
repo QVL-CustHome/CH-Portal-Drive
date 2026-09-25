@@ -22,6 +22,9 @@ build:
     - npm ci
     - npm install canopui@latest # toujours la derniere CanopUI dans l'artefact deploye
     - npm run build
+    # marqueur relu au demarrage par canopui-autorebuild (WSL) pour savoir quelle
+    # version de CanopUI est reellement embarquee dans le bundle deploye
+    - node -p "require('./node_modules/canopui/package.json').version" > dist/.canopui-version
   artifacts:
     paths: [dist/]
     expire_in: 1 week
