@@ -20,6 +20,7 @@ build:
     VITE_REDIRECT_COOKIE_DOMAIN: ".qvl-project.com"
   script:
     - npm ci
+    # dependance en dist-tag latest : choix assume, voir docs/CANOPUI-LATEST.md
     - npm install canopui@latest # toujours la derniere CanopUI dans l'artefact deploye
     - npm run build
     # marqueur relu au demarrage par canopui-autorebuild (WSL) pour savoir quelle
