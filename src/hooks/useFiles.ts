@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiErrorMessage, useTranslation, type CanopToastSeverity } from "canopui";
+import { apiErrorMessage, useTranslation, type CanopToastSeverity } from "@canop/ui";
 import { ApiError } from "../api/client";
 import { useStorageContext } from "../context/storage";
 import {

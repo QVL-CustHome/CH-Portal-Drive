@@ -1,4 +1,4 @@
-import { CanopApiError, createApiClient } from "canopui";
+import { CanopApiError, createApiClient } from "@canop/ui";
 
 const client = createApiClient({ basePath: "/api", withRefresh: true });
 

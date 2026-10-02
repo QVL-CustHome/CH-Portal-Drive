@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { CanopI18nProvider, CanopThemeProvider } from "canopui";
+import { CanopI18nProvider, CanopThemeProvider } from "@canop/ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import UploadPanel from "./UploadPanel";
 import { UploadContext, type UploadContextValue } from "../context/upload";

@@ -1,5 +1,5 @@
 import Box from "@mui/material/Box";
-import { Card, CardGrid, EmptyState, Icon, Stack } from "canopui";
+import { Card, CardGrid, EmptyState, Icon, Stack } from "@canop/ui";
 import type { Node } from "../api/drive";
 import { isPreviewable } from "../lib/preview";
 import DriveFileCard from "./DriveFileCard";

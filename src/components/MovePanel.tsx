@@ -11,7 +11,7 @@ import {
   Stack,
   useTranslation,
   type CanopBreadcrumbItem,
-} from "canopui";
+} from "@canop/ui";
 import { listNodes, type Crumb, type Node } from "../api/drive";
 import PanelFooter from "./PanelFooter";
 

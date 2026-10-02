@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import type { CanopLightboxItem } from "canopui";
+import type { CanopLightboxItem } from "@canop/ui";
 import { contentUrlFor, getPreviewInfo, previewPageUrl, type Node } from "../api/drive";
 import { isGalleryMedia, previewKind } from "../lib/preview";
 

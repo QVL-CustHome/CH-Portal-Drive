@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { apiErrorMessage, useTranslation } from "canopui";
+import { apiErrorMessage, useTranslation } from "@canop/ui";
 import { ApiError } from "../api/client";
 import { UploadContext } from "./upload";
 import { useStorageContext } from "./storage";

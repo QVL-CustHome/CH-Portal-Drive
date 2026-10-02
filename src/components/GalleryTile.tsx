@@ -1,6 +1,6 @@
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
-import { Icon } from "canopui";
+import { Icon } from "@canop/ui";
 import { thumbnailUrl, type Node } from "../api/drive";
 
 interface GalleryTileProps {

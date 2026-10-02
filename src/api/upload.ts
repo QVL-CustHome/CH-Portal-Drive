@@ -7,7 +7,7 @@ import {
   type CanopUploadNode,
   type CanopUploadSessionResponse,
   type CanopUploadTransport,
-} from "canopui";
+} from "@canop/ui";
 import { request } from "./client";
 
 /** Taille d'un morceau. L'API refuse au-delà de 16 Mio. */

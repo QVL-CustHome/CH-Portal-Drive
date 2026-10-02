@@ -13,7 +13,7 @@ import {
   Toast,
   useTranslation,
   type CanopColumn,
-} from "canopui";
+} from "@canop/ui";
 import { type DriveAdminUser } from "../api/drive";
 import { useDriveAdmin } from "../hooks/useDriveAdmin";
 import { formatBytes, formatDate } from "../lib/format";

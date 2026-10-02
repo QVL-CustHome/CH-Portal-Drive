@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { CanopI18nProvider, CanopThemeProvider } from "canopui";
+import { CanopI18nProvider, CanopThemeProvider } from "@canop/ui";
 import { defaultLocale, messages } from "../i18n/messages";
 import { StorageContext, type StorageContextValue } from "../context/storage";
 import { UploadProvider } from "../context/UploadProvider";

@@ -4,17 +4,18 @@
 - **Statut** : décidé et appliqué
 - **Portée** : les 4 portails CustHome (CH-Portail-Admin, CH-Portal-Authenticator, CH-Portal-Drive, CH-Portal-Budgy) et ProjectCenter
 - **Décision de Martin** : les fronts suivent la dernière CanopUI publiée, sans intervention
+- **2026-10-02** : le paquet `canopui` (dépôt `QVL-CanopUI`, abandonné) est remplacé par **`@canop/ui`** (dépôt Azure DevOps `QVL-ToolBox/CanopUI`, versions reparties de 1.0.0, API identique à `canopui` 3.1.1). Même dispositif `latest`, même marqueur `dist/.canopui-version`.
 
-> **À lire avant de « sécuriser » la dépendance.** Voir `canopui` en `latest` dans
+> **À lire avant de « sécuriser » la dépendance.** Voir `@canop/ui` en `latest` dans
 > `package.json` ressemble à un oubli ou à une imprudence. Ce n'en est pas une : c'est un
 > choix pris en connaissance de cause, avec les garde-fous décrits ici. **Ne pas ré-épingler
-> `canopui` sur une version fixe sans en parler à Martin d'abord** — et si une montée de
+> `@canop/ui` sur une version fixe sans en parler à Martin d'abord** — et si une montée de
 > version casse quelque chose, la réponse est de corriger CanopUI, pas de figer le front.
 
 ## Le contexte qui change tout
 
 CanopUI n'est pas une dépendance tierce : c'est **notre** design system, publié par **notre**
-CI (tag `vX.Y.Z` du dépôt `QVL-CanopUI`) sur **notre** registre privé (Verdaccio,
+CI (tag `vX.Y.Z` du dépôt Azure DevOps `QVL-ToolBox/CanopUI`, pipeline Azure) sur **notre** registre privé (Verdaccio,
 `https://npm.qvl-project.com`), consommé par **nos** fronts, sur **notre** machine. Le seul
 publieur possible est ce dépôt. Les raisons habituelles d'épingler une dépendance — un
 mainteneur inconnu peut publier n'importe quoi, un paquet peut être compromis, une release
@@ -27,9 +28,9 @@ espoir côté front. Ce qui suit en découle.
 
 ## Ce qui est réellement en place
 
-1. **`package.json` / `package-lock.json`** : `"canopui": "latest"`. Le lock fige quand même
+1. **`package.json` / `package-lock.json`** : `"@canop/ui": "latest"`. Le lock fige quand même
    une version résolue — c'est elle que `npm ci` installe en local, au lint et aux tests.
-2. **La CI** installe `canopui@latest` juste avant `npm run build` : l'artefact déployé part
+2. **La CI** installe `@canop/ui@latest` juste avant `npm run build` : l'artefact déployé part
    donc toujours sur la dernière version publiée, même si le lock est plus ancien.
 3. **Le build écrit `dist/.canopui-version`** — la version réellement embarquée dans le
    bundle. Elle voyage avec `dist/` jusqu'au dossier servi (`/opt/custhome/ch-portal-drive/dist/`, recopié par le helper `ch-deploy-portal`).
@@ -78,7 +79,7 @@ librairie : figer le front cacherait le problème pour tous les autres.
    prochain démarrage — ou un `sudo canopui-autorebuild --force ch-portal-drive` — rattrape le
    front.
 3. **Dépannage immédiat** si la correction demande du temps : faire repointer la dist-tag sur
-   la version saine, `npm dist-tag add canopui@X.Y.Z latest --registry https://npm.qvl-project.com`.
+   la version saine, `npm dist-tag add @canop/ui@X.Y.Z latest --registry https://npm.qvl-project.com`.
    Tous les fronts reviennent alors à cette version, sans toucher à un seul `package.json`.
 4. **Épingler le front** est le dernier recours, temporaire et à documenter ici (version,
    date, raison, condition de retour à `latest`).

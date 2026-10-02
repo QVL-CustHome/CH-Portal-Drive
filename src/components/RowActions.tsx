@@ -1,4 +1,4 @@
-import { Stack } from "canopui";
+import { Stack } from "@canop/ui";
 import type { ReactNode } from "react";
 
 interface RowActionsProps {

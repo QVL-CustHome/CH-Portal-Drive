@@ -1,4 +1,4 @@
-import type { CanopLocale, CanopLocaleMessages } from "canopui";
+import type { CanopLocale, CanopLocaleMessages } from "@canop/ui";
 
 export const defaultLocale: CanopLocale = "fr";
 

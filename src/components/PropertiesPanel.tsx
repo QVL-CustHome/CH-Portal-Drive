@@ -1,4 +1,4 @@
-import { DescriptionList, SidePanel, useTranslation } from "canopui";
+import { DescriptionList, SidePanel, useTranslation } from "@canop/ui";
 import type { Node } from "../api/drive";
 import { formatBytes, formatDate } from "../lib/format";
 

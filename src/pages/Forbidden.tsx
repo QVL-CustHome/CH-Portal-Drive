@@ -1,5 +1,5 @@
 import Box from "@mui/material/Box";
-import { Button, Feedback, Heading, Stack, useTranslation } from "canopui";
+import { Button, Feedback, Heading, Stack, useTranslation } from "@canop/ui";
 import { navigateTo } from "../lib/navigation";
 import { loginUrl } from "../lib/auth-redirect";
 

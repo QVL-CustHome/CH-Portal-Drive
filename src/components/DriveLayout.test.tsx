@@ -1,4 +1,4 @@
-import { CurrentUserProvider } from "canopui";
+import { CurrentUserProvider } from "@canop/ui";
 import { describe, expect, it, vi } from "vitest";
 import DriveLayout from "./DriveLayout";
 import { renderWithProviders, storageStub } from "../test/harness";

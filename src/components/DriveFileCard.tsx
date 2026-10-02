@@ -1,4 +1,4 @@
-import { FileCard, Icon, MenuItem, type CanopFileCardKind } from "canopui";
+import { FileCard, Icon, MenuItem, type CanopFileCardKind } from "@canop/ui";
 import { thumbnailUrl, type Node } from "../api/drive";
 import type { ContextMenuItem } from "./ContextMenu";
 

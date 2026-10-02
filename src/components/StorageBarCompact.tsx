@@ -1,6 +1,6 @@
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { ProgressBar, Stack } from "canopui";
+import { ProgressBar, Stack } from "@canop/ui";
 
 interface StorageBarCompactProps {
   title: string;

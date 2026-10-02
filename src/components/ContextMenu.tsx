@@ -1,4 +1,4 @@
-import { Icon, Menu, MenuItem, type CanopIconName } from "canopui";
+import { Icon, Menu, MenuItem, type CanopIconName } from "@canop/ui";
 
 export interface ContextMenuItem {
   icon: CanopIconName;

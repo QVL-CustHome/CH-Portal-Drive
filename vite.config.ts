@@ -1,7 +1,7 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { canopyVideo } from "canopui/vite";
+import { canopyVideo } from "@canop/ui/vite";
 
 export default defineConfig({
   plugins: [react(), canopyVideo()],

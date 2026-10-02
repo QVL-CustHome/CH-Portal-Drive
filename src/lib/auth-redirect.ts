@@ -1,4 +1,4 @@
-import { REDIRECT_INTENT_PARAM } from "canopui";
+import { REDIRECT_INTENT_PARAM } from "@canop/ui";
 
 const AUTH_PORTAL_URL =
   import.meta.env.VITE_AUTH_PORTAL_URL ?? "http://localhost:3200";

@@ -1,5 +1,5 @@
 import Typography from "@mui/material/Typography";
-import { Icon, Stack, type CanopIconName } from "canopui";
+import { Icon, Stack, type CanopIconName } from "@canop/ui";
 
 interface NameCellProps {
   icon: CanopIconName;

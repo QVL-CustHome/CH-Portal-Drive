@@ -21,7 +21,7 @@ import {
   type CanopToolbarAction,
   type CanopToolbarSearchConfig,
   type CanopToolbarViewConfig,
-} from "canopui";
+} from "@canop/ui";
 import ContextMenu from "../components/ContextMenu";
 import FilesGrid from "../components/FilesGrid";
 import FilesTable from "../components/FilesTable";

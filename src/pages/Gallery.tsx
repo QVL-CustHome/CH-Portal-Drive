@@ -11,7 +11,7 @@ import {
   Stack,
   useTranslation,
   type CanopLightboxItem,
-} from "canopui";
+} from "@canop/ui";
 import GalleryTile from "../components/GalleryTile";
 import { contentUrlFor, type Node } from "../api/drive";
 import { useGallery } from "../hooks/useGallery";

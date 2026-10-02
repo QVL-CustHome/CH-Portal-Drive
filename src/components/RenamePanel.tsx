@@ -1,4 +1,4 @@
-import { Button, Input, SidePanel, Stack, useTranslation } from "canopui";
+import { Button, Input, SidePanel, Stack, useTranslation } from "@canop/ui";
 import PanelFooter from "./PanelFooter";
 
 export interface RenamePanelProps {

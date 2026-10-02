@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, Outlet } from "react-router-dom";
-import { PageScaffold, useTranslation, type CanopNavbarItem } from "canopui";
+import { PageScaffold, useTranslation, type CanopNavbarItem } from "@canop/ui";
 import { useCurrentUser } from "../context/current-user";
 import { StorageProvider } from "../context/StorageProvider";
 import { UploadProvider } from "../context/UploadProvider";

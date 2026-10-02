@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useTranslation } from "canopui";
+import { useTranslation } from "@canop/ui";
 import { listGallery, type Node } from "../api/drive";
 
 export function useGallery() {

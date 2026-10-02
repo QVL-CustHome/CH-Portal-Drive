@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createCanopTheme } from "canopui";
+import { createCanopTheme } from "@canop/ui";
 
 export const MOBILE_BREAKPOINT = 768;
 

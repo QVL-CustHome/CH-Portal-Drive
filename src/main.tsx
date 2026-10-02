@@ -1,5 +1,5 @@
-import { CanopI18nProvider, CanopThemeProvider } from "canopui";
-import "canopui/styles.css";
+import { CanopI18nProvider, CanopThemeProvider } from "@canop/ui";
+import "@canop/ui/styles.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

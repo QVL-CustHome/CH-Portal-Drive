@@ -1,1 +1,1 @@
-export { navigateTo } from "canopui";
+export { navigateTo } from "@canop/ui";

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { Button, Card, IconActionButton, ProgressBar, Stack, useTranslation } from "canopui";
+import { Button, Card, IconActionButton, ProgressBar, Stack, useTranslation } from "@canop/ui";
 import { useUploadContext } from "../context/upload";
 
 /** Délai avant effacement automatique une fois l'envoi terminé. */

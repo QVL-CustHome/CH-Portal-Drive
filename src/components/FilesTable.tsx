@@ -8,7 +8,7 @@ import {
   useTranslation,
   type CanopColumn,
   type CanopIconName,
-} from "canopui";
+} from "@canop/ui";
 import type { MouseEvent } from "react";
 import InlineNameInput from "./InlineNameInput";
 import NameCell from "./NameCell";

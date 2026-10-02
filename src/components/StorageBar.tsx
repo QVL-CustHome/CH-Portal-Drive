@@ -1,4 +1,4 @@
-import { Feedback, Spinner, useTranslation } from "canopui";
+import { Feedback, Spinner, useTranslation } from "@canop/ui";
 import { useStorageBar } from "../hooks/useStorageBar";
 import { formatBytes } from "../lib/format";
 import StorageBarCompact from "./StorageBarCompact";
